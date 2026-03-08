@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paddock 17 — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Raleway:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --dark:#0F1E2B;--dark2:#152635;--dark3:#1a2f40;
+  --green:#1B3A2D;--green-dk:#0F2119;
+  --brass:#C4A265;--brass-lt:#D4B97A;--brass-dk:#A8884E;
+  --cream:#F5F0E8;--white:#FFFFFF;
+  --warm:#B8B0A4;--muted:#8A8478;
+  --text:#2A2A26;--text2:#5A5A55;
+  --cbg:#F8F5EF;--border:rgba(196,162,101,.15);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{font-size:16px}
+body{font-family:'Cormorant Garamond',Georgia,serif;background:var(--dark);color:var(--cream);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* LOGIN */
+#loginScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
+.login-box{background:var(--dark2);border:1px solid var(--border);border-radius:8px;padding:2.5rem 2rem;width:100%;max-width:360px}
+.login-badge{font-family:'Raleway',sans-serif;font-size:.5rem;font-weight:600;letter-spacing:.25em;text-transform:uppercase;color:var(--brass);border:1px solid var(--border);padding:.4rem 1rem;border-radius:2px;display:inline-block;margin-bottom:1.5rem}
+.login-title{font-size:1.6rem;font-weight:300;color:var(--cream);margin-bottom:.2rem}
+.login-sub{font-size:.85rem;font-style:italic;color:var(--muted);margin-bottom:2rem}
+.field label{display:block;font-family:'Raleway',sans-serif;font-size:.52rem;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--brass);margin-bottom:.3rem}
+.field input{width:100%;font-family:'Cormorant Garamond',Georgia,serif;font-size:1rem;color:var(--cream);background:rgba(255,255,255,.05);border:1px solid var(--border);padding:.75rem .9rem;border-radius:3px;transition:border-color .3s;margin-bottom:1rem}
+.field input:focus{outline:none;border-color:var(--brass)}
+.field input::placeholder{color:var(--muted);font-style:italic}
+.btn-primary{width:100%;font-family:'Raleway',sans-serif;font-size:.65rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--dark);background:var(--brass);border:none;padding:.85rem;border-radius:3px;cursor:pointer;transition:background .3s}
+.btn-primary:hover{background:var(--brass-lt)}
+.login-error{font-family:'Raleway',sans-serif;font-size:.6rem;color:#c06060;margin-top:.7rem;text-align:center;letter-spacing:.05em;display:none}
+
+/* ADMIN SHELL */
+#adminShell{display:none}
+.top-bar{background:var(--dark2);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+.top-brand{display:flex;align-items:center;gap:.8rem}
+.top-badge{font-family:'Raleway',sans-serif;font-size:.48rem;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--brass);border:1px solid var(--border);padding:.35rem .8rem;border-radius:2px}
+.top-title{font-size:1.1rem;font-weight:400;color:var(--cream)}
+.top-actions{display:flex;align-items:center;gap:1rem}
+.top-refresh{font-family:'Raleway',sans-serif;font-size:.52rem;font-weight:500;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);background:none;border:1px solid rgba(138,132,120,.2);padding:.4rem .9rem;border-radius:3px;cursor:pointer;transition:all .3s}
+.top-refresh:hover{border-color:var(--brass);color:var(--brass)}
+.top-logout{font-family:'Raleway',sans-serif;font-size:.52rem;font-weight:500;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);background:none;border:none;cursor:pointer;transition:color .3s}
+.top-logout:hover{color:var(--cream)}
+
+/* STATS ROW */
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+.stat{background:var(--dark2);padding:1.2rem 2rem}
+.stat-n{font-size:1.8rem;font-weight:600;color:var(--brass);line-height:1}
+.stat-l{font-family:'Raleway',sans-serif;font-size:.5rem;font-weight:400;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:.25rem}
+
+/* CONTENT */
+.content{padding:2rem;max-width:1200px;margin:0 auto}
+.section-label{font-family:'Raleway',sans-serif;font-size:.55rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--brass);margin-bottom:1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+
+/* FILTERS */
+.filters{display:flex;gap:.6rem;margin-bottom:1.2rem;flex-wrap:wrap;align-items:center}
+.search-input{font-family:'Cormorant Garamond',Georgia,serif;font-size:.95rem;color:var(--cream);background:var(--dark2);border:1px solid var(--border);padding:.5rem .9rem;border-radius:3px;transition:border-color .3s;flex:1;min-width:200px;max-width:320px}
+.search-input:focus{outline:none;border-color:var(--brass)}
+.search-input::placeholder{color:var(--muted);font-style:italic}
+.filter-count{font-family:'Raleway',sans-serif;font-size:.52rem;font-weight:400;letter-spacing:.1em;color:var(--muted);margin-left:auto}
+
+/* MEMBER TABLE */
+.member-table{width:100%;border-collapse:collapse}
+.member-table th{font-family:'Raleway',sans-serif;font-size:.48rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);padding:.6rem 1rem;text-align:left;border-bottom:1px solid var(--border);background:var(--dark2)}
+.member-table th:first-child{border-radius:6px 0 0 0}
+.member-table th:last-child{border-radius:0 6px 0 0}
+.member-row{border-bottom:1px solid rgba(196,162,101,.07);cursor:pointer;transition:background .2s}
+.member-row:hover{background:rgba(196,162,101,.04)}
+.member-row td{padding:.75rem 1rem;vertical-align:middle}
+.member-name{font-size:.95rem;font-weight:500;color:var(--cream)}
+.member-email{font-family:'Raleway',sans-serif;font-size:.58rem;font-weight:400;color:var(--muted);margin-top:.1rem}
+.member-id{font-family:'Raleway',sans-serif;font-size:.58rem;font-weight:400;color:var(--muted);letter-spacing:.05em}
+.member-since{font-family:'Raleway',sans-serif;font-size:.62rem;font-weight:400;color:var(--warm)}
+.member-visits{font-family:'Raleway',sans-serif;font-size:.8rem;font-weight:600;color:var(--brass)}
+.has-msgs{display:inline-flex;align-items:center;gap:.3rem;font-family:'Raleway',sans-serif;font-size:.48rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;background:rgba(196,162,101,.12);color:var(--brass);padding:.2rem .55rem;border-radius:3px}
+.row-arrow{color:var(--muted);font-size:.9rem;transition:transform .2s}
+.member-row:hover .row-arrow{transform:translateX(3px);color:var(--brass)}
+.empty-state{text-align:center;padding:3rem 1rem;color:var(--muted);font-style:italic;font-size:.9rem}
+
+/* DETAIL PANEL (slide-in) */
+#detailPanel{position:fixed;right:0;top:0;bottom:0;width:480px;max-width:95vw;background:var(--dark2);border-left:1px solid var(--border);z-index:200;transform:translateX(100%);transition:transform .35s cubic-bezier(.25,.46,.45,.94);overflow-y:auto;display:flex;flex-direction:column}
+#detailPanel.open{transform:translateX(0)}
+.panel-header{padding:1.5rem 1.5rem 1.2rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0}
+.panel-name{font-size:1.3rem;font-weight:500;color:var(--cream);margin-bottom:.15rem}
+.panel-id{font-family:'Raleway',sans-serif;font-size:.52rem;font-weight:400;letter-spacing:.1em;color:var(--muted)}
+.panel-close{background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;padding:.2rem;line-height:1;transition:color .2s}
+.panel-close:hover{color:var(--cream)}
+.panel-body{padding:1.2rem 1.5rem;flex:1;overflow-y:auto}
+.detail-section{margin-bottom:1.5rem}
+.detail-label{font-family:'Raleway',sans-serif;font-size:.5rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--brass);margin-bottom:.7rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.detail-item{background:var(--dark3);border-radius:5px;padding:.7rem .9rem}
+.di-label{font-family:'Raleway',sans-serif;font-size:.45rem;font-weight:500;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.2rem}
+.di-value{font-size:.88rem;font-weight:400;color:var(--cream)}
+.di-value.big{font-size:1.3rem;font-weight:600;color:var(--brass)}
+
+/* RSVP CHIPS */
+.rsvp-chips{display:flex;flex-wrap:wrap;gap:.4rem}
+.rsvp-chip{font-family:'Raleway',sans-serif;font-size:.45rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;background:rgba(27,58,45,.5);color:#7ab89a;padding:.25rem .6rem;border-radius:3px}
+
+/* MESSAGES */
+.msg-item{background:var(--dark3);border-radius:6px;padding:.9rem 1rem;margin-bottom:.6rem}
+.msg-text{font-size:.9rem;font-weight:300;color:var(--cream);line-height:1.7;margin-bottom:.4rem}
+.msg-meta{font-family:'Raleway',sans-serif;font-size:.48rem;font-weight:400;letter-spacing:.08em;color:var(--muted)}
+.reply-area{margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--border)}
+.reply-existing{background:rgba(196,162,101,.07);border-left:2px solid var(--brass);border-radius:0 5px 5px 0;padding:.7rem .9rem;margin-bottom:.5rem}
+.reply-existing .msg-text{color:var(--brass-lt)}
+.reply-existing .msg-meta{color:var(--brass-dk)}
+.reply-input{width:100%;font-family:'Cormorant Garamond',Georgia,serif;font-size:.9rem;color:var(--cream);background:rgba(255,255,255,.05);border:1px solid var(--border);padding:.6rem .8rem;border-radius:4px;resize:vertical;min-height:70px;transition:border-color .3s;margin-bottom:.4rem}
+.reply-input:focus{outline:none;border-color:var(--brass)}
+.reply-input::placeholder{color:var(--muted);font-style:italic}
+.btn-reply{font-family:'Raleway',sans-serif;font-size:.52rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--dark);background:var(--brass);border:none;padding:.5rem 1rem;border-radius:3px;cursor:pointer;transition:background .3s}
+.btn-reply:hover{background:var(--brass-lt)}
+.btn-reply:disabled{opacity:.5;cursor:default}
+.no-msgs{font-size:.85rem;font-style:italic;color:var(--muted)}
+
+/* OVERLAY */
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:150;display:none;cursor:pointer}
+#overlay.show{display:block}
+
+/* LOADING */
+.spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--brass);border-radius:50%;animation:spin .7s linear infinite;margin:3rem auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-badge">Paddock 17</div>
+    <div class="login-title">Admin Portal</div>
+    <div class="login-sub">Restricted access</div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="pwInput" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="loginError">Incorrect password. Please try again.</div>
+  </div>
+</div>
+
+<!-- ADMIN SHELL -->
+<div id="adminShell">
+  <div class="top-bar">
+    <div class="top-brand">
+      <div class="top-badge">Paddock 17</div>
+      <div class="top-title">Member Admin</div>
+    </div>
+    <div class="top-actions">
+      <button class="top-refresh" onclick="loadMembers()">↻ Refresh</button>
+      <button class="top-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="statsBar">
+    <div class="stat"><div class="stat-n" id="statTotal">—</div><div class="stat-l">Total Members</div></div>
+    <div class="stat"><div class="stat-n" id="statVisits">—</div><div class="stat-l">Total Visits</div></div>
+    <div class="stat"><div class="stat-n" id="statRsvps">—</div><div class="stat-l">RSVPs</div></div>
+    <div class="stat"><div class="stat-n" id="statMsgs">—</div><div class="stat-l">Messages</div></div>
+  </div>
+
+  <div class="content">
+    <div class="section-label">Members</div>
+    <div class="filters">
+      <input class="search-input" id="searchInput" type="text" placeholder="Search by name, email, or ID…" oninput="filterMembers()">
+      <div class="filter-count" id="filterCount"></div>
+    </div>
+    <div id="memberList"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div id="overlay" onclick="closePanel()"></div>
+<div id="detailPanel">
+  <div class="panel-header">
+    <div>
+      <div class="panel-name" id="panelName"></div>
+      <div class="panel-id" id="panelId"></div>
+    </div>
+    <button class="panel-close" onclick="closePanel()">✕</button>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+</div>
+
+<script>
+var adminKey = null;
+var allMembers = [];
+var eventNames = {
+  'e1': 'Friends & Family Pre-Opening',
+  'e2': 'Meet the Team',
+  'e3': 'Grand Opening'
+};
+
+function doLogin() {
+  var pw = document.getElementById('pwInput').value;
+  if (!pw) return;
+  adminKey = pw;
+  fetch('/api/admin/members', { headers: { 'x-admin-key': pw } })
+    .then(function(r) {
+      if (r.status === 401) throw new Error('unauthorized');
+      if (!r.ok) throw new Error('server error');
+      return r.json();
+    })
+    .then(function(data) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('adminShell').style.display = 'block';
+      allMembers = data;
+      renderStats(data);
+      renderTable(data);
+    })
+    .catch(function(err) {
+      var errEl = document.getElementById('loginError');
+      errEl.style.display = 'block';
+      errEl.textContent = err.message === 'unauthorized' ? 'Incorrect password. Please try again.' : 'Could not connect to server.';
+      adminKey = null;
+    });
+}
+
+function loadMembers() {
+  document.getElementById('memberList').innerHTML = '<div class="spinner"></div>';
+  fetch('/api/admin/members', { headers: { 'x-admin-key': adminKey } })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      allMembers = data;
+      renderStats(data);
+      var q = document.getElementById('searchInput').value;
+      renderTable(q ? allMembers.filter(function(m) { return matchSearch(m, q); }) : allMembers);
+    });
+}
+
+function renderStats(members) {
+  var totalVisits = members.reduce(function(s, m) { return s + (m.visits || 0); }, 0);
+  var totalRsvps = members.reduce(function(s, m) {
+    var r = safeJson(m.rsvps, []);
+    return s + r.length;
+  }, 0);
+  var totalMsgs = members.reduce(function(s, m) {
+    var c = safeJson(m.comments, []);
+    return s + c.length;
+  }, 0);
+  document.getElementById('statTotal').textContent = members.length;
+  document.getElementById('statVisits').textContent = totalVisits;
+  document.getElementById('statRsvps').textContent = totalRsvps;
+  document.getElementById('statMsgs').textContent = totalMsgs;
+}
+
+function safeJson(val, fallback) {
+  if (!val) return fallback;
+  if (typeof val === 'object') return val;
+  try { return JSON.parse(val); } catch(e) { return fallback; }
+}
+
+function renderTable(members) {
+  document.getElementById('filterCount').textContent = members.length + ' member' + (members.length !== 1 ? 's' : '');
+  if (members.length === 0) {
+    document.getElementById('memberList').innerHTML = '<div class="empty-state">No members found.</div>';
+    return;
+  }
+  var html = '<table class="member-table"><thead><tr>' +
+    '<th>Member</th><th>ID</th><th>Since</th><th>Visits</th><th>RSVPs</th><th>Messages</th><th></th>' +
+    '</tr></thead><tbody>';
+  members.forEach(function(m, i) {
+    var rsvps = safeJson(m.rsvps, []);
+    var comments = safeJson(m.comments, []);
+    var hasUnreplied = comments.some(function(c) { return !c.reply; });
+    html += '<tr class="member-row" onclick="openMember(' + i + ')">' +
+      '<td><div class="member-name">' + esc(m.first_name || '') + ' ' + esc(m.last_name || '') + '</div>' +
+      '<div class="member-email">' + esc(m.email || '') + '</div></td>' +
+      '<td><div class="member-id">' + esc(m.member_id || '—') + '</div></td>' +
+      '<td><div class="member-since">' + esc(m.member_since || '—') + '</div></td>' +
+      '<td><div class="member-visits">' + (m.visits || 0) + '</div></td>' +
+      '<td><div class="member-since">' + rsvps.length + '</div></td>' +
+      '<td>' + (comments.length > 0 ? '<span class="has-msgs">' + (hasUnreplied ? '● ' : '') + comments.length + ' msg' + (comments.length !== 1 ? 's' : '') + '</span>' : '<span style="color:var(--muted);font-size:.58rem">—</span>') + '</td>' +
+      '<td><span class="row-arrow">›</span></td>' +
+      '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('memberList').innerHTML = html;
+  // Store filtered list for index lookup
+  window._filteredMembers = members;
+}
+
+function openMember(idx) {
+  var members = window._filteredMembers || allMembers;
+  var m = members[idx];
+  if (!m) return;
+  var rsvps = safeJson(m.rsvps, []);
+  var comments = safeJson(m.comments, []);
+  var prefs = [];
+  if (m.water_pref) prefs.push({ l: 'Water', v: m.water_pref });
+  if (m.seat_pref) prefs.push({ l: 'Seating', v: m.seat_pref });
+  if (m.dietary) prefs.push({ l: 'Dietary', v: m.dietary });
+
+  document.getElementById('panelName').textContent = (m.first_name || '') + ' ' + (m.last_name || '');
+  document.getElementById('panelId').textContent = m.member_id || '';
+
+  var html = '';
+
+  // Stats
+  html += '<div class="detail-section"><div class="detail-label">Overview</div><div class="detail-grid">';
+  html += '<div class="detail-item"><div class="di-label">Member Since</div><div class="di-value">' + esc(m.member_since || '—') + '</div></div>';
+  html += '<div class="detail-item"><div class="di-label">Email</div><div class="di-value" style="font-size:.78rem;word-break:break-all">' + esc(m.email || '—') + '</div></div>';
+  html += '<div class="detail-item"><div class="di-label">Visits</div><div class="di-value big">' + (m.visits || 0) + '</div></div>';
+  html += '<div class="detail-item"><div class="di-label">RSVPs</div><div class="di-value big">' + rsvps.length + '</div></div>';
+  html += '</div></div>';
+
+  // RSVPs
+  if (rsvps.length > 0) {
+    html += '<div class="detail-section"><div class="detail-label">RSVPs</div><div class="rsvp-chips">';
+    rsvps.forEach(function(id) {
+      html += '<span class="rsvp-chip">' + esc(eventNames[id] || id) + '</span>';
+    });
+    html += '</div></div>';
+  }
+
+  // Preferences
+  if (prefs.length > 0) {
+    html += '<div class="detail-section"><div class="detail-label">Preferences</div><div class="detail-grid">';
+    prefs.forEach(function(p) {
+      html += '<div class="detail-item"><div class="di-label">' + esc(p.l) + '</div><div class="di-value">' + esc(p.v) + '</div></div>';
+    });
+    html += '</div></div>';
+  }
+
+  // Notes
+  if (m.notes) {
+    html += '<div class="detail-section"><div class="detail-label">Notes from Member</div>';
+    html += '<div class="msg-item"><div class="msg-text">' + esc(m.notes) + '</div></div></div>';
+  }
+
+  // Messages
+  html += '<div class="detail-section"><div class="detail-label">Messages (' + comments.length + ')</div>';
+  if (comments.length === 0) {
+    html += '<div class="no-msgs">No messages yet.</div>';
+  } else {
+    comments.forEach(function(c, ci) {
+      var d = new Date(c.date);
+      var ds = isNaN(d) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+        ' at ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      html += '<div class="msg-item">';
+      html += '<div class="msg-text">' + esc(c.text) + '</div>';
+      html += '<div class="msg-meta">Member · ' + ds + '</div>';
+      html += '<div class="reply-area">';
+      if (c.reply) {
+        var rd = c.replyDate ? new Date(c.replyDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+        html += '<div class="reply-existing"><div class="msg-text">' + esc(c.reply) + '</div>';
+        html += '<div class="msg-meta">Owner · ' + rd + '</div></div>';
+        html += '<textarea class="reply-input" id="reply_' + ci + '" placeholder="Edit reply…">' + esc(c.reply) + '</textarea>';
+      } else {
+        html += '<textarea class="reply-input" id="reply_' + ci + '" placeholder="Write a reply…"></textarea>';
+      }
+      html += '<button class="btn-reply" onclick="sendReply(\'' + esc(m.email) + '\',' + ci + ')">Send Reply</button>';
+      html += '</div></div>';
+    });
+  }
+  html += '</div>';
+
+  document.getElementById('panelBody').innerHTML = html;
+  document.getElementById('detailPanel').classList.add('open');
+  document.getElementById('overlay').classList.add('show');
+
+  // Store current member email for reply
+  window._currentMemberEmail = m.email;
+}
+
+function sendReply(email, commentIdx) {
+  var inp = document.getElementById('reply_' + commentIdx);
+  if (!inp) return;
+  var text = inp.value.trim();
+  if (!text) return;
+  var btn = inp.parentElement.querySelector('.btn-reply');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  fetch('/api/admin/reply', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+    body: JSON.stringify({ email: email, commentIdx: commentIdx, reply: text })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        loadMembers();
+        // Refresh panel
+        var updated = allMembers.find(function(m) { return m.email === email; });
+        if (updated) {
+          var comments = safeJson(updated.comments, []);
+          var ci = allMembers.findIndex(function(m) { return m.email === email; });
+          openMember(ci);
+        }
+        btn.textContent = 'Sent ✓';
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Send Reply';
+        alert('Error: ' + (data.error || 'Unknown error'));
+      }
+    })
+    .catch(function() {
+      btn.disabled = false;
+      btn.textContent = 'Send Reply';
+      alert('Network error. Please try again.');
+    });
+}
+
+function closePanel() {
+  document.getElementById('detailPanel').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function filterMembers() {
+  var q = document.getElementById('searchInput').value.toLowerCase().trim();
+  var filtered = q ? allMembers.filter(function(m) { return matchSearch(m, q); }) : allMembers;
+  renderTable(filtered);
+}
+
+function matchSearch(m, q) {
+  return (m.first_name || '').toLowerCase().includes(q) ||
+    (m.last_name || '').toLowerCase().includes(q) ||
+    (m.email || '').toLowerCase().includes(q) ||
+    (m.member_id || '').toLowerCase().includes(q);
+}
+
+function esc(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function logout() {
+  adminKey = null;
+  allMembers = [];
+  document.getElementById('adminShell').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('pwInput').value = '';
+  document.getElementById('loginError').style.display = 'none';
+}
+
+document.getElementById('pwInput').focus();
+</script>
+</body>
+</html>

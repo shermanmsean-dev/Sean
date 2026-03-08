@@ -58,6 +58,33 @@ app.get('/api/admin/members', async (req, res) => {
     res.status(500).json({ error: 'Database error' });
   }
 });
+app.post('/api/admin/reply', async (req, res) => {
+  if (req.headers['x-admin-key'] !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const { email, commentIdx, reply } = req.body;
+  if (!email || commentIdx === undefined || !reply) {
+    return res.status(400).json({ error: 'email, commentIdx, and reply required' });
+  }
+  try {
+    const result = await pool.query('SELECT comments FROM members WHERE email = $1', [email]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Member not found' });
+    const comments = typeof result.rows[0].comments === 'string'
+      ? JSON.parse(result.rows[0].comments)
+      : (result.rows[0].comments || []);
+    if (!comments[commentIdx]) return res.status(400).json({ error: 'Comment not found' });
+    comments[commentIdx].reply = reply;
+    comments[commentIdx].replyDate = new Date().toISOString();
+    await pool.query(
+      'UPDATE members SET comments = $1, updated_at = NOW() WHERE email = $2',
+      [JSON.stringify(comments), email]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Paddock 17 server running on port ${PORT}`);
