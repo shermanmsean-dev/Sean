@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Paddock 17 — The Vintage Equestrian Club</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Raleway:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --dark:#0F1E2B;--dark2:#152635;
+  --green:#1B3A2D;--green-dk:#0F2119;
+  --brass:#C4A265;--brass-lt:#D4B97A;--brass-dk:#A8884E;
+  --gold-s:#D4B97A;--gold-e:#A8884E;
+  --cream:#F5F0E8;--white:#FFFFFF;
+  --warm:#B8B0A4;--muted:#8A8478;
+  --text:#2A2A26;--text2:#5A5A55;
+  --cbg:#F8F5EF;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{font-size:16px}
+body{font-family:'Cormorant Garamond',Georgia,serif;background:var(--cream);color:var(--text);-webkit-font-smoothing:antialiased;overflow:hidden;height:100vh;height:100dvh}
+/* APP SHELL */
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:430px;margin:0 auto;background:var(--cream);position:relative;overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,.3)}
+.app-scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+/* PAGE SYSTEM */
+.page{display:none !important;min-height:100%}
+.page.active{display:block !important}
+#welcomePage.active{display:flex !important}
+/* page transition */
+.page.active .page-anim{animation:pageIn .5s cubic-bezier(.25,.46,.45,.94) forwards}
+@keyframes pageIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+/* staggered card entrance */
+.stagger{opacity:0;transform:translateY(20px);transition:opacity .55s cubic-bezier(.25,.46,.45,.94),transform .55s cubic-bezier(.25,.46,.45,.94)}
+.stagger.in{opacity:1;transform:translateY(0)}
+/* haptic button press */
+.tap{transition:transform .12s ease}
+.tap:active{transform:scale(.96) !important}
+/* grain texture */
+.grain{position:relative}
+.grain::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.3;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");background-size:200px 200px}
+/* brass section accent */
+.sl{font-family:'Raleway',sans-serif;font-size:.58rem;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--text2);margin-bottom:.8rem;padding-bottom:.5rem;position:relative}
+.sl::after{content:'';position:absolute;bottom:0;left:0;width:32px;height:1.5px;background:var(--brass);border-radius:1px}
+.sl-c{text-align:center}.sl-c::after{left:50%;transform:translateX(-50%)}
+/* horseshoe divider */
+.eq-div{display:flex;align-items:center;justify-content:center;padding:.8rem 1.4rem .6rem;opacity:.35}
+.eq-div svg{width:16px;height:16px;fill:none;stroke:var(--brass);stroke-width:1.3}
+/* WELCOME */
+#welcomePage{background:var(--dark);flex-direction:column;justify-content:center;align-items:center;padding:3rem 1.8rem;text-align:center;min-height:100%}
+.w-badge{font-family:'Raleway',sans-serif;font-size:.56rem;font-weight:500;letter-spacing:.25em;text-transform:uppercase;color:var(--brass);border:1px solid rgba(196,162,101,.3);padding:.45rem 1.1rem;margin-bottom:2rem;border-radius:2px}
+.w-title{font-size:2rem;font-weight:300;color:var(--cream);margin-bottom:.3rem}
+.w-title em{font-style:italic;color:var(--brass-lt)}
+.w-sub{font-size:.92rem;font-style:italic;font-weight:300;color:var(--warm);margin-bottom:2.2rem;line-height:1.55;max-width:310px}
+.w-form{width:100%;max-width:310px}
+.w-field{margin-bottom:1rem;text-align:left}
+.w-field label{display:block;font-family:'Raleway',sans-serif;font-size:.56rem;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--brass);margin-bottom:.3rem}
+.w-field input{width:100%;font-family:'Cormorant Garamond',Georgia,serif;font-size:1.05rem;color:var(--cream);background:rgba(255,255,255,.05);border:1px solid rgba(196,162,101,.2);padding:.8rem .9rem;border-radius:2px;transition:border-color .3s}
+.w-field input:focus{outline:none;border-color:var(--brass)}
+.w-field input::placeholder{color:var(--muted);font-style:italic}
+.w-btn{width:100%;font-family:'Raleway',sans-serif;font-size:.68rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--dark);background:var(--brass);border:none;padding:.95rem;cursor:pointer;transition:background .3s;margin-top:.6rem;border-radius:2px}
+.w-btn:hover{background:var(--brass-lt)}
+.w-note{font-size:.78rem;font-style:italic;color:var(--muted);margin-top:1.2rem;line-height:1.5}
+/* TOP HEADER */
+.top-hdr{background:var(--dark);padding:1.4rem 1.4rem 0;position:relative;z-index:1}
+.tg{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.3rem}
+.tg-hello{font-size:1.35rem;font-weight:300;color:var(--cream);line-height:1.3}
+.tg-hello span{font-style:italic;font-weight:400;color:var(--warm);font-size:.88rem;display:block;margin-bottom:.1rem}
+.top-badge{font-family:'Raleway',sans-serif;font-size:.5rem;font-weight:500;letter-spacing:.15em;text-transform:uppercase;color:var(--cream);border:1px solid rgba(196,162,101,.4);padding:.4rem .85rem;border-radius:2px;white-space:nowrap;display:flex;align-items:center;gap:.4rem}
+.top-badge svg{width:10px;height:10px;stroke:var(--brass);fill:none;stroke-width:1.5}
+/* MEMBER CARD + SHIMMER */
+.mc{background:linear-gradient(135deg,var(--gold-s) 0%,var(--gold-e) 100%);border-radius:12px;padding:1.4rem 1.3rem;margin:0 0 1.4rem;position:relative;overflow:hidden}
+.mc::before{content:'';position:absolute;top:-30%;right:-15%;width:55%;height:120%;background:radial-gradient(circle,rgba(255,255,255,.15) 0%,transparent 70%);pointer-events:none}
+.mc::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.25) 50%,transparent 70%);pointer-events:none;animation:shimmer 3s ease-in-out 1s;animation-fill-mode:forwards}
+@keyframes shimmer{0%{left:-100%}100%{left:150%}}
+.mc-lab{font-family:'Raleway',sans-serif;font-size:.56rem;font-weight:500;letter-spacing:.15em;text-transform:uppercase;color:rgba(0,0,0,.42);margin-bottom:.45rem}
+.mc-nm{font-size:1.3rem;font-weight:600;color:var(--dark);margin-bottom:.9rem;letter-spacing:.02em;position:relative;z-index:1}
+.mc-bot{display:flex;justify-content:space-between;align-items:flex-end;position:relative;z-index:1}
+.mc-sl{font-family:'Raleway',sans-serif;font-size:.48rem;font-weight:500;letter-spacing:.15em;text-transform:uppercase;color:rgba(0,0,0,.38);margin-bottom:.1rem}
+.mc-sv{font-size:.88rem;font-weight:600;color:var(--dark)}
+.mc-id{font-family:'Raleway',sans-serif;font-size:.66rem;font-weight:400;letter-spacing:.08em;color:rgba(0,0,0,.35)}
+/* CURVES */
+.curve{background:var(--dark)}.curve::after{content:'';display:block;height:20px;background:var(--cream);border-radius:20px 20px 0 0}
+.ph{background:var(--dark);padding:1.8rem 1.4rem 1.3rem;position:relative;z-index:1}
+.ph-t{font-size:1.6rem;font-weight:300;color:var(--cream)}
+.ph-s{font-size:.85rem;font-style:italic;font-weight:300;color:var(--warm);margin-top:.25rem}
+/* CONTENT ZONES */
+.cz{padding:0 1.4rem 2rem}
+.pgc{padding:.8rem 1.4rem 2rem}
+/* WELCOME BOX */
+.wb{background:var(--white);border-radius:10px;padding:1.4rem;margin-bottom:1.3rem;box-shadow:0 2px 12px rgba(0,0,0,.04);border-left:3px solid var(--brass)}
+.wb-t{font-size:1.1rem;font-weight:500;color:var(--text);margin-bottom:.5rem}
+.wb p{font-size:.9rem;font-weight:300;color:var(--text2);line-height:1.75}
+.wb p+p{margin-top:.5rem}
+.wb strong{font-weight:600;color:var(--text)}
+.z17{font-weight:700;color:var(--brass-dk)}
+/* VISIT BOX */
+.vb{background:var(--white);border-radius:10px;padding:1.2rem;text-align:center;margin-bottom:1.3rem;box-shadow:0 2px 12px rgba(0,0,0,.04)}
+.vb-n{font-size:1.7rem;font-weight:600;color:var(--text);line-height:1}
+.vb-l{font-family:'Raleway',sans-serif;font-size:.58rem;font-weight:400;letter-spacing:.12em;text-transform:uppercase;color:var(--text2);margin-top:.2rem}
+/* QUICK ACTIONS */
+.qg{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:1.3rem}
+.qb{background:var(--white);border-radius:10px;padding:1rem;display:flex;align-items:center;gap:.7rem;cursor:pointer;border:none;box-shadow:0 2px 12px rgba(0,0,0,.04);text-align:left;transition:box-shadow .3s,transform .15s}
+.qb:hover{box-shadow:0 4px 20px rgba(0,0,0,.08)}
+.qi{width:36px;height:36px;border-radius:8px;background:var(--cbg);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qi svg{width:16px;height:16px;stroke:var(--brass);fill:none;stroke-width:1.8}
+.qt{font-family:'Raleway',sans-serif;font-size:.72rem;font-weight:600;color:var(--text);letter-spacing:.02em}
+/* EVENT CARDS */
+.ec{background:var(--white);border-radius:10px;padding:1rem;margin-bottom:.6rem;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 12px rgba(0,0,0,.04);cursor:pointer;transition:box-shadow .3s,transform .15s}
+.ec:hover{box-shadow:0 4px 20px rgba(0,0,0,.08)}
+.ei{flex:1}
+.en{font-size:1.05rem;font-weight:600;color:var(--text);display:flex;align-items:center;gap:.45rem;flex-wrap:wrap}
+.edt{font-family:'Raleway',sans-serif;font-size:.68rem;font-weight:400;color:var(--text2);margin-top:.15rem}
+.eb{font-family:'Raleway',sans-serif;font-size:.48rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:.2rem .55rem;border-radius:3px;white-space:nowrap}
+.eb-r{background:rgba(27,58,45,.1);color:var(--green)}.eb-o{background:rgba(196,162,101,.15);color:var(--brass-dk)}.eb-f{background:rgba(180,60,60,.1);color:#a04040}
+.ea{color:var(--warm);font-size:1.1rem;margin-left:.3rem}
+/* EVENT DETAIL */
+.ed{background:var(--white);border-radius:12px;padding:1.4rem;margin-bottom:.7rem;box-shadow:0 2px 12px rgba(0,0,0,.04)}
+.ed-d{font-family:'Raleway',sans-serif;font-size:.58rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--brass);margin-bottom:.35rem}
+.ed-n{font-size:1.3rem;font-weight:500;color:var(--text);margin-bottom:.6rem}
+.ed-p{font-size:.9rem;font-weight:300;color:var(--text2);line-height:1.7;margin-bottom:.9rem}
+.ed-m{display:flex;gap:1.3rem;margin-bottom:.9rem}
+.ed-mi{font-family:'Raleway',sans-serif;font-size:.6rem;font-weight:400;color:var(--text2)}.ed-mi strong{color:var(--text);font-weight:600}
+.ed-b{width:100%;font-family:'Raleway',sans-serif;font-size:.65rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;padding:.8rem;border:none;border-radius:4px;cursor:pointer;transition:all .3s}
+.ed-br{background:var(--green);color:var(--cream)}.ed-br:hover{background:var(--green-dk)}
+.ed-bc{background:transparent;color:var(--brass-dk);border:1px solid var(--brass)}.ed-bc:hover{background:rgba(196,162,101,.08)}
+.ed-bf{background:var(--cbg);color:var(--muted);cursor:default}
+/* KITCHEN CARDS */
+.kc{background:var(--white);border-radius:12px;overflow:hidden;margin-bottom:.8rem;box-shadow:0 2px 12px rgba(0,0,0,.04)}
+.kh{background:var(--green);padding:.9rem 1.2rem;display:flex;justify-content:space-between;align-items:center}
+.kt{font-family:'Raleway',sans-serif;font-size:.5rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--brass-lt)}
+.kd{font-family:'Raleway',sans-serif;font-size:.52rem;font-weight:400;color:var(--warm)}
+.kb{padding:1.2rem}
+.kn{font-size:1.15rem;font-weight:500;color:var(--text);margin-bottom:.4rem}
+.kx{font-size:.9rem;font-weight:300;color:var(--text2);line-height:1.75}
+.kby{font-family:'Raleway',sans-serif;font-size:.58rem;font-weight:400;color:var(--muted);margin-top:.7rem;font-style:italic}
+/* PERKS */
+.pk{background:var(--white);border-radius:10px;padding:1.2rem;margin-bottom:.6rem;box-shadow:0 2px 12px rgba(0,0,0,.04);border-left:3px solid var(--brass)}
+.pk-n{font-size:1rem;font-weight:500;color:var(--text);margin-bottom:.3rem}
+.pk-d{font-size:.86rem;font-weight:300;color:var(--text2);line-height:1.65}
+/* COMMENT BOX */
+.cs{margin-top:1.5rem}
+.cb{background:var(--white);border-radius:10px;padding:1.2rem;box-shadow:0 2px 12px rgba(0,0,0,.04);margin-bottom:.6rem;position:relative}
+.cb textarea{width:100%;font-family:'Cormorant Garamond',Georgia,serif;font-size:.98rem;color:var(--text);background:var(--cbg);border:1px solid rgba(0,0,0,.08);padding:.8rem .9rem;border-radius:6px;resize:vertical;min-height:85px;transition:border-color .3s}
+.cb textarea:focus{outline:none;border-color:var(--brass)}
+.cb textarea::placeholder{color:var(--muted);font-style:italic}
+.cs-btn{width:100%;font-family:'Raleway',sans-serif;font-size:.65rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--dark);background:var(--brass);border:none;padding:.8rem;border-radius:4px;cursor:pointer;transition:all .3s;margin-top:.5rem}
+.cs-btn:hover{background:var(--brass-lt)}
+.cs-note{font-size:.8rem;font-style:italic;font-weight:300;color:var(--muted);margin-top:.5rem;line-height:1.5;text-align:center}
+/* sent confirmation */
+.sent-confirm{position:absolute;inset:0;background:rgba(255,255,255,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:10px;z-index:10;animation:sentIn .4s ease-out}
+@keyframes sentIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+.sent-check{width:48px;height:48px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;margin-bottom:.8rem;animation:checkPop .5s cubic-bezier(.175,.885,.32,1.275) .15s both}
+@keyframes checkPop{from{transform:scale(0)}to{transform:scale(1)}}
+.sent-check svg{width:24px;height:24px;stroke:var(--cream);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.sent-text{font-family:'Raleway',sans-serif;font-size:.68rem;font-weight:500;letter-spacing:.15em;text-transform:uppercase;color:var(--text)}
+.sent-sub{font-size:.85rem;font-style:italic;font-weight:300;color:var(--text2);margin-top:.3rem}
+.ch{margin-top:.6rem}
+.cm{background:var(--cbg);border-radius:8px;padding:.9rem 1rem;margin-bottom:.5rem}
+.cm-t{font-size:.9rem;font-weight:300;color:var(--text2);line-height:1.65}
+.cm-m{font-family:'Raleway',sans-serif;font-size:.52rem;font-weight:400;letter-spacing:.08em;color:var(--muted);margin-top:.3rem}
+.cm-r{background:var(--white);border:1px solid rgba(196,162,101,.2);border-radius:8px;padding:.9rem 1rem;margin-bottom:.5rem;margin-left:1rem}
+.cm-r .cm-m{color:var(--brass-dk)}
+/* PROFILE */
+.prc{background:var(--white);border-radius:10px;padding:1.2rem;margin-bottom:.7rem;box-shadow:0 2px 12px rgba(0,0,0,.04)}
+.pr{display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid rgba(0,0,0,.04)}
+.pr:last-child{border-bottom:none}
+.prl{font-family:'Raleway',sans-serif;font-size:.55rem;font-weight:500;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)}
+.prv{font-size:.92rem;font-weight:400;color:var(--text);text-align:right}
+.pre{font-family:'Raleway',sans-serif;font-size:.55rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--brass);cursor:pointer;border:none;background:none;padding:.3rem .4rem;transition:color .3s}
+.pre:hover{color:var(--brass-dk)}
+.lo{width:100%;font-family:'Raleway',sans-serif;font-size:.62rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:#a04040;background:transparent;border:1px solid rgba(160,64,64,.3);padding:.8rem;border-radius:4px;cursor:pointer;transition:all .3s;margin-top:.3rem}
+.lo:hover{background:rgba(160,64,64,.05)}
+/* TAB BAR */
+.tb{display:flex;background:var(--dark);border-top:1px solid rgba(196,162,101,.08);height:64px;flex-shrink:0}
+.t{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.18rem;cursor:pointer;opacity:.4;border:none;background:none;padding:0;transition:opacity .25s,transform .12s}
+.t.a{opacity:1}
+.t:active{transform:scale(.9)}
+.t svg{width:18px;height:18px;stroke:var(--warm);fill:none;stroke-width:1.5;transition:stroke .25s}
+.t.a svg{stroke:var(--brass)}
+.tl{font-family:'Raleway',sans-serif;font-size:.46rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--warm);transition:color .25s}
+.t.a .tl{color:var(--brass)}
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:flex-end;justify-content:center}
+.mo.sh{display:flex}
+.ml{background:var(--cream);border-radius:16px 16px 0 0;padding:1.6rem 1.4rem 2.2rem;width:100%;max-width:430px;max-height:80vh;overflow-y:auto;animation:mu .35s ease-out}
+@keyframes mu{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.mh{width:38px;height:4px;background:rgba(0,0,0,.15);border-radius:2px;margin:0 auto 1.2rem}
+.mtl{font-size:1.15rem;font-weight:500;color:var(--text);margin-bottom:.7rem}
+.mf{margin-bottom:.7rem}
+.mf label{display:block;font-family:'Raleway',sans-serif;font-size:.55rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.25rem}
+.mf input,.mf select{width:100%;font-family:'Cormorant Garamond',Georgia,serif;font-size:.98rem;color:var(--text);background:var(--white);border:1px solid rgba(0,0,0,.1);padding:.75rem .9rem;border-radius:4px;transition:border-color .3s}
+.mf input:focus,.mf select:focus{outline:none;border-color:var(--brass)}
+.msv{width:100%;font-family:'Raleway',sans-serif;font-size:.65rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--dark);background:var(--brass);border:none;padding:.8rem;border-radius:4px;cursor:pointer;transition:background .3s;margin-top:.3rem}
+.msv:hover{background:var(--brass-lt)}
+.mcn{width:100%;font-family:'Raleway',sans-serif;font-size:.6rem;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:none;border:none;padding:.5rem;cursor:pointer;margin-top:.2rem}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+<div class="app-scroll" id="appScroll">
+<!-- WELCOME -->
+<div class="page active" id="welcomePage">
+<div class="w-badge">Paddock 17</div>
+<h1 class="w-title">The Vintage<br><em>Equestrian Club</em></h1>
+<p class="w-sub">Welcome to the Paddock — reserved for the neighbors, friends, and families who make Middleburg home.</p>
+<div class="w-form">
+<div class="w-field"><label>First Name</label><input type="text" id="wFirst" placeholder="e.g. Alexandra"></div>
+<div class="w-field"><label>Last Name</label><input type="text" id="wLast" placeholder="e.g. Sherman"></div>
+<div class="w-field"><label>Email</label><input type="email" id="wEmail" placeholder="your@email.com"></div>
+<div class="w-field"><label>Member Code</label><input type="text" id="wCode" placeholder="Enter your code" autocomplete="off"></div>
+<button class="w-btn tap" onclick="createMember()">Enter the Paddock</button>
+</div>
+<p class="w-note">Paddock 17 is by invitation only for residents of the 20117.</p>
+</div>
+<!-- HOME -->
+<div class="page" id="homePage">
+<div class="top-hdr grain">
+<div class="tg">
+<div class="tg-hello" id="homeGreeting"></div>
+<div class="top-badge"><svg viewBox="0 0 24 24"><path d="M6 14C6 8.5 10.5 4.5 15 4.5s7.5 3 7.5 7v4.5a1.5 1.5 0 0 1-1.5 1.5h-1.5v-6a4.5 4.5 0 0 0-9 0v6H9A1.5 1.5 0 0 1 7.5 15V14z" stroke-linecap="round"/></svg>Paddock 17</div>
+</div>
+<div class="mc" id="memberCard">
+<div class="mc-lab">Paddock 17</div>
+<div class="mc-nm" id="mcNm"></div>
+<div class="mc-bot"><div><div class="mc-sl">Member Since</div><div class="mc-sv" id="mcSince"></div></div><div class="mc-id" id="mcId"></div></div>
+</div>
+</div>
+<div class="curve"></div>
+<div class="cz page-anim">
+<div class="wb stagger">
+<div class="wb-t">Welcome to the Paddock.</div>
+<p>This is your corner of The Vintage Equestrian Club — built exclusively for the people of <strong>201<span class="z17">17</span></strong>. Because the heart of any great restaurant isn't the menu or the room — it's the community that fills it.</p>
+<p>As a Paddock 17 member, you'll enjoy preferred reservations, sneak peeks of new dishes before they hit the menu, invitations to members-only events, and a direct line to the owner. This is our way of saying thank you to the neighbors who make Middleburg home.</p>
+</div>
+<div class="vb stagger"><div class="vb-n" id="visitCount">0</div><div class="vb-l">Visits</div></div>
+<div class="sl stagger">Quick Actions</div>
+<div class="qg stagger">
+<button class="qb tap"><div class="qi"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="qt">Reserve a Table</div></button>
+<button class="qb tap" onclick="switchTab('kitchen-link')"><div class="qi"><svg viewBox="0 0 24 24"><path d="M3 3h18v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3z"/><path d="M3 8h18"/></svg></div><div class="qt">From the Kitchen</div></button>
+</div>
+<div class="eq-div"><svg viewBox="0 0 24 24"><path d="M6 12C6 7.5 9.5 4 13 4s5.5 2.5 5.5 5.5v3.5a1.5 1.5 0 0 1-1.5 1.5h-1v-5a3.5 3.5 0 0 0-7 0v5H8A1.5 1.5 0 0 1 6.5 13V12z" stroke-linecap="round"/><circle cx="8" cy="15.5" r="1"/><circle cx="18" cy="15.5" r="1"/></svg></div>
+<div class="sl stagger">Upcoming Events</div>
+<div id="homeEvents"></div>
+</div>
+</div>
+<!-- EVENTS -->
+<div class="page" id="eventsPage">
+<div class="ph grain"><div class="ph-t">Events</div><div class="ph-s">Exclusive dinners, tastings &amp; celebrations</div></div>
+<div class="curve"></div>
+<div class="pgc page-anim" id="eventsContent"></div>
+</div>
+<!-- KITCHEN -->
+<div class="page" id="kitchenPage">
+<div class="ph grain"><div class="ph-t">From the Kitchen</div><div class="ph-s">Sneak peeks, chef's notes &amp; what's coming next</div></div>
+<div class="curve"></div>
+<div class="pgc page-anim" id="kitchenContent"></div>
+</div>
+<!-- PERKS -->
+<div class="page" id="perksPage">
+<div class="ph grain"><div class="ph-t">Your Perks</div><div class="ph-s">Paddock 17 member benefits</div></div>
+<div class="curve"></div>
+<div class="pgc page-anim" id="perksContent"></div>
+</div>
+<!-- PROFILE -->
+<div class="page" id="profilePage">
+<div class="ph grain"><div class="ph-t">Profile</div><div class="ph-s">Your membership details</div></div>
+<div class="curve"></div>
+<div class="pgc page-anim" id="profileContent"></div>
+</div>
+</div>
+<!-- TABS -->
+<div class="tb" id="tabBar" style="display:none">
+<button class="t a" id="home-link" onclick="switchTab('home-link')"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="tl">Home</span></button>
+<button class="t" id="events-link" onclick="switchTab('events-link')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="tl">Events</span></button>
+<button class="t" id="kitchen-link" onclick="switchTab('kitchen-link')"><svg viewBox="0 0 24 24"><path d="M3 3h18v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3z"/><path d="M3 8h18"/></svg><span class="tl">Kitchen</span></button>
+<button class="t" id="perks-link" onclick="switchTab('perks-link')"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="tl">Perks</span></button>
+<button class="t" id="profile-link" onclick="switchTab('profile-link')"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="tl">Profile</span></button>
+</div>
+</div>
+<!-- MODAL -->
+<div class="mo" id="modalOverlay" onclick="closeModal(event)"><div class="ml"><div class="mh"></div><div id="modalContent"></div></div></div>
+<script>
+var SK='vec_p17_v3';
+function ld(){try{return JSON.parse(localStorage.getItem(SK))||null}catch(e){return null}}
+function sv(d){
+  localStorage.setItem(SK,JSON.stringify(d));
+  fetch('/api/members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    email:d.email,first:d.first,last:d.last,memberId:d.memberId,memberSince:d.memberSince,
+    visits:d.visits,rsvps:d.rsvps,comments:d.comments,
+    waterPref:d.waterPref,seatPref:d.seatPref,dietary:d.dietary,notes:d.notes
+  })}).catch(function(){});
+}
+function getEv(){return[
+{id:'e1',name:'Friends & Family Pre-Opening',date:'2026-05-10',time:'6:00 PM',desc:'Complimentary first-look dinner for Paddock members and their guests before anyone else sets foot in the restaurant.',seats:40,taken:0,price:'Complimentary'},
+{id:'e2',name:'Meet the Team',date:'2026-05-15',time:'5:30 PM',desc:'Casual evening with passed bites and cocktails, kitchen tour, meet the chef and bar team. No reservation needed.',seats:60,taken:0,price:'Complimentary'},
+{id:'e3',name:'Grand Opening',date:'2026-05-18',time:'5:00 PM',desc:'Doors officially open. Full dinner service, bar open, Paddock 17 members get priority seating before the public.',seats:80,taken:0,price:'À la carte'}
+]}
+function getKP(){return[
+{tag:'Sneak Peek',date:'March 8, 2026',title:"Chef Colby's Spring Inspiration",text:"Every season I start the same way — I drive the back roads, visit the farms, and let what's actually growing tell me what the menu should be. This spring it's all pointing toward morels, spring onions, early strawberries, and the first tender lettuces out of the valley. Expect lighter, brighter plates. Less sauce, more intention. I can't wait to share it with you.",by:'— Chef Colby'},
+{tag:"Chef's Note",date:'March 5, 2026',title:'Thank You for Having Me',text:"I don't take lightly what it means to cook in a town like Middleburg. This community has a standard — for hospitality, for quality, for the way people look after one another. Getting the chance to be part of that, to build something here, is genuinely one of the great honors of my career. Paddock 17 exists because of the people in this zip code. I just hope the food is worthy of the room.",by:'— Chef Colby'},
+{tag:"Chef's Small Batch Feature",date:'March 8, 2026',title:"This Week's Special: Pan-Seared Halibut",text:"Pacific halibut with a brown butter and caper pan sauce, served over celery root purée with crispy capers and a handful of watercress dressed in lemon. Clean, simple, and exactly what the season calls for. Available at dinner Thursday through Saturday — we only have it for a few nights, so ask your server when you sit down.",by:'— Chef Colby'},
+{tag:'Behind the Scenes',date:'January 28, 2026',title:'The Sourdough Starter Has a Name',text:"Her name is Eleanor. She's been with us since day one — fed every morning, rested every night. She's responsible for the dinner rolls, the croutons, and the grilled sourdough on the tartare plate. If you've ever wondered why the bread here tastes different, now you know who to thank.",by:'— Chef Colby'}
+]}
+var D=ld();if(D){sv(D);showApp();}
+function createMember(){
+var f=document.getElementById('wFirst').value.trim(),l=document.getElementById('wLast').value.trim(),e=document.getElementById('wEmail').value.trim(),c=document.getElementById('wCode').value.trim().toUpperCase();
+if(!f||!l){alert('Please enter your name.');return}if(!e){alert('Please enter your email.');return}if(c!=='RES'){alert('Invalid member code. Please try again.');return}
+var n=new Date(),ms=['January','February','March','April','May','June','July','August','September','October','November','December'];
+D={first:f,last:l,email:e,memberSince:ms[n.getMonth()]+' '+n.getFullYear(),memberId:'VEC-'+n.getFullYear()+'-'+(1000+Math.floor(Math.random()*9000)),visits:0,rsvps:[],comments:[]};
+sv(D);showApp();
+}
+function showApp(){
+document.getElementById('welcomePage').classList.remove('active');
+document.getElementById('homePage').classList.add('active');
+document.getElementById('tabBar').style.display='flex';
+renderHome();
+setTimeout(triggerStagger,100);
+var mc=document.getElementById('memberCard');
+if(mc){mc.style.animation='none';mc.offsetHeight;mc.style.animation=''}
+}
+function triggerStagger(){
+var els=document.querySelectorAll('.page.active .stagger:not(.in)');
+els.forEach(function(el,i){setTimeout(function(){el.classList.add('in')},i*90)});
+}
+function switchTab(id){
+document.querySelectorAll('.t').forEach(function(t){t.classList.remove('a')});
+document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+document.querySelectorAll('.stagger').forEach(function(s){s.classList.remove('in')});
+document.getElementById(id).classList.add('a');
+document.getElementById('appScroll').scrollTop=0;
+var m={'home-link':'homePage','events-link':'eventsPage','kitchen-link':'kitchenPage','perks-link':'perksPage','profile-link':'profilePage'};
+document.getElementById(m[id]).classList.add('active');
+if(id==='home-link')renderHome();
+if(id==='events-link')renderEvents();
+if(id==='kitchen-link')renderKitchen();
+if(id==='perks-link')renderPerks();
+if(id==='profile-link')renderProfile();
+setTimeout(triggerStagger,80);
+}
+function renderHome(){
+if(!D)return;
+var h=new Date().getHours();
+var timeWord=h>=5&&h<12?'Morning':h>=12&&h<17?'Afternoon':'Evening';
+document.getElementById('homeGreeting').innerHTML='<span>'+timeWord+',</span>'+D.first+'.';
+document.getElementById('mcNm').textContent=D.first+' '+D.last;
+document.getElementById('mcSince').textContent=D.memberSince;
+document.getElementById('mcId').textContent=D.memberId;
+document.getElementById('visitCount').textContent=D.visits;
+var evs=getEv(),html='',n=0;
+evs.forEach(function(ev){if(n>=3)return;
+var r=D.rsvps.indexOf(ev.id)>-1,f=ev.taken>=ev.seats&&!r;
+var b=r?'<span class="eb eb-r">RSVP\'d</span>':f?'<span class="eb eb-f">Full</span>':'<span class="eb eb-o">Open</span>';
+var d=new Date(ev.date+'T12:00:00'),ds=d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' \u00b7 '+ev.time;
+html+='<div class="ec stagger tap" onclick="switchTab(\'events-link\')"><div class="ei"><div class="en">'+ev.name+b+'</div><div class="edt">'+ds+'</div></div><div class="ea">\u203a</div></div>';n++});
+document.getElementById('homeEvents').innerHTML=html;
+}
+function renderEvents(){
+var evs=getEv(),html='';
+evs.forEach(function(ev){var r=D.rsvps.indexOf(ev.id)>-1,f=ev.taken>=ev.seats&&!r;
+var d=new Date(ev.date+'T12:00:00'),ds=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+var btn=r?'<button class="ed-b ed-bc tap" onclick="cancelRsvp(\''+ev.id+'\')">Cancel RSVP</button>':f?'<button class="ed-b ed-bf">Fully Booked</button>':'<button class="ed-b ed-br tap" onclick="rsvpEvent(\''+ev.id+'\')">RSVP Now</button>';
+var sl=ev.seats-ev.taken,st=r?'You\'re confirmed':f?'Waitlist available':sl+' of '+ev.seats+' spots remaining';
+html+='<div class="ed stagger"><div class="ed-d">'+ds+' \u00b7 '+ev.time+'</div><div class="ed-n">'+ev.name+'</div><div class="ed-p">'+ev.desc+'</div><div class="ed-m"><div class="ed-mi"><strong>'+ev.price+'</strong></div><div class="ed-mi">'+st+'</div></div>'+btn+'</div>'});
+document.getElementById('eventsContent').innerHTML=html;
+}
+function rsvpEvent(id){if(D.rsvps.indexOf(id)===-1){D.rsvps.push(id);D.visits++}sv(D);renderEvents();renderHome();setTimeout(triggerStagger,80)}
+function cancelRsvp(id){D.rsvps=D.rsvps.filter(function(r){return r!==id});if(D.visits>0)D.visits--;sv(D);renderEvents();renderHome();setTimeout(triggerStagger,80)}
+function renderKitchen(){
+var posts=getKP(),html='';
+posts.forEach(function(p){html+='<div class="kc stagger"><div class="kh"><span class="kt">'+p.tag+'</span><span class="kd">'+p.date+'</span></div><div class="kb"><div class="kn">'+p.title+'</div><div class="kx">'+p.text+'</div><div class="kby">'+p.by+'</div></div></div>'});
+document.getElementById('kitchenContent').innerHTML=html;
+}
+function renderPerks(){
+var perks=[
+{n:'Welcome Drink',d:'A complimentary glass of Champagne on arrival — every visit. Because every evening at VEC should begin with a celebration.'},
+{n:'Preferred Reservations',d:'Every night, a set of tables is held exclusively for Paddock 17 members. No matter how busy the season gets, there will always be a seat here for you. Book directly through the app and it\'s yours.'},
+{n:'Members-Only Events',d:'Exclusive access to wine dinners, tasting events, seasonal suppers, and celebrations designed for the Paddock 17 community.'}
+];
+var html='';perks.forEach(function(p){html+='<div class="pk stagger"><div class="pk-n">'+p.n+'</div><div class="pk-d">'+p.d+'</div></div>'});
+html+='<div class="eq-div"><svg viewBox="0 0 24 24"><path d="M6 12C6 7.5 9.5 4 13 4s5.5 2.5 5.5 5.5v3.5a1.5 1.5 0 0 1-1.5 1.5h-1v-5a3.5 3.5 0 0 0-7 0v5H8A1.5 1.5 0 0 1 6.5 13V12z" stroke-linecap="round"/><circle cx="8" cy="15.5" r="1"/><circle cx="18" cy="15.5" r="1"/></svg></div>';
+html+='<div class="cs stagger"><div class="sl">A Note to the Owner</div>';
+html+='<div class="cb" id="commentBox"><textarea id="commentInput" placeholder="Share a thought, a suggestion, or just say hello\u2026"></textarea><button class="cs-btn tap" onclick="sendComment()">Send Message</button><p class="cs-note">Every message is read and personally replied to by the owner.</p></div>';
+html+='<div class="ch" id="commentHistory"></div></div>';
+document.getElementById('perksContent').innerHTML=html;
+renderComments();
+}
+function sendComment(){
+var inp=document.getElementById('commentInput'),msg=inp.value.trim();
+if(!msg)return;
+if(!D.comments)D.comments=[];
+D.comments.push({text:msg,date:new Date().toISOString(),from:'member'});
+sv(D);inp.value='';
+var box=document.getElementById('commentBox');
+var conf=document.createElement('div');
+conf.className='sent-confirm';
+conf.innerHTML='<div class="sent-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="sent-text">Message Sent</div><div class="sent-sub">We\u2019ll be in touch.</div>';
+box.appendChild(conf);
+setTimeout(function(){conf.remove();renderComments()},2000);
+}
+function renderComments(){
+var el=document.getElementById('commentHistory');if(!el)return;
+if(!D.comments||D.comments.length===0){el.innerHTML='';return}
+var html='';D.comments.forEach(function(c){
+var d=new Date(c.date),ds=d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' at '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+html+='<div class="cm"><div class="cm-t">'+c.text+'</div><div class="cm-m">You \u00b7 '+ds+'</div></div>';
+if(c.reply){var rd=c.replyDate?new Date(c.replyDate).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+html+='<div class="cm-r"><div class="cm-t">'+c.reply+'</div><div class="cm-m">Owner \u00b7 '+rd+'</div></div>'}
+});el.innerHTML=html;
+}
+function renderProfile(){
+var html='<div class="prc stagger">';
+html+='<div class="pr"><div><div class="prl">Name</div><div class="prv">'+D.first+' '+D.last+'</div></div><button class="pre" onclick="editName()">Edit</button></div>';
+html+='<div class="pr"><div><div class="prl">Email</div><div class="prv">'+D.email+'</div></div><button class="pre" onclick="editField(\'email\',\'Email\')">Edit</button></div>';
+html+='<div class="pr"><div><div class="prl">Member Since</div><div class="prv">'+D.memberSince+'</div></div></div>';
+html+='<div class="pr"><div><div class="prl">Member ID</div><div class="prv">'+D.memberId+'</div></div></div>';
+html+='<div class="pr"><div><div class="prl">Visits</div><div class="prv">'+D.visits+'</div></div></div></div>';
+html+='<div class="sl stagger" style="margin-top:1rem">Preferences</div><div class="prc stagger">';
+html+='<div class="pr"><div><div class="prl">Water</div><div class="prv">'+(D.waterPref||'Not set')+'</div></div><button class="pre" onclick="editSel(\'waterPref\',\'Water\',[\'Still\',\'Sparkling\',\'No preference\'])">Edit</button></div>';
+html+='<div class="pr"><div><div class="prl">Seating</div><div class="prv">'+(D.seatPref||'Not set')+'</div></div><button class="pre" onclick="editSel(\'seatPref\',\'Seating\',[\'Bar\',\'Booth\',\'Table\',\'Terrace\',\'No preference\'])">Edit</button></div>';
+html+='<div class="pr"><div><div class="prl">Dietary</div><div class="prv">'+(D.dietary||'None')+'</div></div><button class="pre" onclick="editField(\'dietary\',\'Dietary Notes\')">Edit</button></div></div>';
+html+='<div class="sl stagger" style="margin-top:1rem">Anything Else</div>';
+html+='<button class="lo tap" style="margin-bottom:.7rem" onclick="signOut()">Sign Out</button>';
+html+='<div class="prc stagger"><textarea id="notesInput" placeholder="Anything you\'d like us to know — a special occasion, a preference, a familiar face to look out for…" style="width:100%;font-family:\'Cormorant Garamond\',Georgia,serif;font-size:.98rem;color:var(--text);background:var(--cbg);border:1px solid rgba(0,0,0,.08);padding:.8rem .9rem;border-radius:6px;resize:vertical;min-height:90px;transition:border-color .3s;outline:none;" onfocus="this.style.borderColor=\'var(--brass)\'" onblur="this.style.borderColor=\'rgba(0,0,0,.08)\'">'+(D.notes||'')+'</textarea><button class="msv tap" style="margin-top:.5rem" onclick="saveNotes()">Save</button></div>';
+document.getElementById('profileContent').innerHTML=html;
+}
+function editName(){
+var h='<div class="mtl">Edit Name</div><div class="mf"><label>First</label><input id="eF" value="'+D.first+'"></div><div class="mf"><label>Last</label><input id="eL" value="'+D.last+'"></div>';
+h+='<button class="msv tap" onclick="svNm()">Save</button><button class="mcn" onclick="closeModal()">Cancel</button>';
+document.getElementById('modalContent').innerHTML=h;document.getElementById('modalOverlay').classList.add('sh');
+}
+function svNm(){D.first=document.getElementById('eF').value.trim()||D.first;D.last=document.getElementById('eL').value.trim()||D.last;sv(D);closeModal();renderProfile();renderHome();setTimeout(triggerStagger,80)}
+function editField(k,l){
+var h='<div class="mtl">Edit '+l+'</div><div class="mf"><label>'+l+'</label><input id="eV" value="'+(D[k]||'')+'"></div>';
+h+='<button class="msv tap" onclick="svF(\''+k+'\')">Save</button><button class="mcn" onclick="closeModal()">Cancel</button>';
+document.getElementById('modalContent').innerHTML=h;document.getElementById('modalOverlay').classList.add('sh');
+setTimeout(function(){document.getElementById('eV').focus()},100);
+}
+function svF(k){D[k]=document.getElementById('eV').value.trim();sv(D);closeModal();renderProfile();renderHome();setTimeout(triggerStagger,80)}
+function editSel(k,l,opts){
+var h='<div class="mtl">Edit '+l+'</div><div class="mf"><label>'+l+'</label><select id="eV">';
+opts.forEach(function(o){h+='<option'+(D[k]===o?' selected':'')+'>'+o+'</option>'});
+h+='</select></div><button class="msv tap" onclick="svF(\''+k+'\')">Save</button><button class="mcn" onclick="closeModal()">Cancel</button>';
+document.getElementById('modalContent').innerHTML=h;document.getElementById('modalOverlay').classList.add('sh');
+}
+function saveNotes(){var v=document.getElementById('notesInput');if(!v)return;D.notes=v.value.trim();sv(D);v.style.borderColor='var(--brass)';setTimeout(function(){v.style.borderColor='rgba(0,0,0,.08)'},1200)}
+function signOut(){localStorage.removeItem(SK);location.reload()}
+function resetM(){if(confirm('This will permanently reset your membership data. Are you sure?')){localStorage.removeItem(SK);location.reload()}}
+function closeModal(e){if(e&&e.target&&e.target!==document.getElementById('modalOverlay'))return;document.getElementById('modalOverlay').classList.remove('sh')}
+window.closeModal=function(e){if(e&&e.target&&e.target!==document.getElementById('modalOverlay'))return;document.getElementById('modalOverlay').classList.remove('sh')};
+</script>
+</body>
+</html>
