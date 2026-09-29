@@ -260,7 +260,7 @@ app.post('/api/auth/start', async (req, res) => {
     if (!isMember && !joining) {
       await sendEmail(email, 'Paddock 17',
         'Someone tried to sign in to Paddock 17 with this email, but we don’t have a membership under it.\n\n' +
-        'If you’d like to join, scan the Paddock 17 QR code at The Vintage Equestrian Club or ask any of our team for an invitation.\n\n' +
+        'If you’d like to join, please ask any of our team at The Vintage Equestrian Club for a Paddock 17 invitation card.\n\n' +
         '— The Vintage Equestrian Club');
       return res.json({ ok: true });
     }

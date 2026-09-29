@@ -211,9 +211,9 @@ body{font-family:'Cormorant Garamond',Georgia,serif;background:var(--cream);colo
 <div class="w-field"><label>Last Name</label><input type="text" id="wLast" maxlength="60" autocomplete="family-name" placeholder="e.g. Sherman"></div>
 </div>
 <div class="w-field"><label>Email</label><input type="email" id="wEmail" maxlength="254" autocomplete="email" placeholder="your@email.com"></div>
-<div class="w-field" id="wInviteField" style="display:none"><label>Invitation Code</label><input type="text" id="wInvite" maxlength="60" autocomplete="off" placeholder="From your invitation"></div>
+<input type="hidden" id="wInvite">
 <button class="w-btn tap" id="wSend" onclick="startAuth()">Send Sign-In Code</button>
-<p class="w-note" style="margin-top:.9rem"><a href="#" id="wToggle" onclick="toggleJoin();return false" style="color:var(--brass)">New member? Join with an invitation</a></p>
+<p class="w-note" id="wToggleRow" style="margin-top:.9rem;display:none"><a href="#" id="wToggle" onclick="toggleJoin();return false" style="color:var(--brass)"></a></p>
 </div>
 <div class="w-form" id="wCodeForm" style="display:none">
 <p class="w-sub" id="wCodeMsg" style="margin-bottom:1.2rem"></p>
@@ -321,15 +321,14 @@ var joining=false,pendingEmail='';
 function setJoin(on){
 joining=on;
 document.getElementById('wJoinFields').style.display=on?'block':'none';
-document.getElementById('wInviteField').style.display=on&&!document.getElementById('wInvite').dataset.fromLink?'block':'none';
-document.getElementById('wToggle').textContent=on?'Already a member? Sign in':'New member? Join with an invitation';
+document.getElementById('wToggle').textContent=on?'Already a member? Sign in':'New here? Join with your invitation';
 }
 function toggleJoin(){setJoin(!joining)}
 (function boot(){
 var inv=new URLSearchParams(location.search).get('invite');
 if(inv){
 // Arrived from the QR code: keep the invitation, then tidy the address bar.
-var el=document.getElementById('wInvite');el.value=inv;el.dataset.fromLink='1';
+document.getElementById('wInvite').value=inv;document.getElementById('wToggleRow').style.display='block';
 history.replaceState(null,'',location.pathname);
 }
 if(localStorage.getItem(TOKEN_KEY)){
@@ -351,7 +350,6 @@ if(!e){alert('Please enter your email.');return}
 if(joining){
 body.first=document.getElementById('wFirst').value.trim();body.last=document.getElementById('wLast').value.trim();body.invite=document.getElementById('wInvite').value.trim();
 if(!body.first||!body.last){alert('Please enter your name.');return}
-if(!body.invite){alert('Please enter your invitation code.');return}
 }
 var btn=document.getElementById('wSend');btn.disabled=true;
 api('POST','/api/auth/start',body).then(function(){
