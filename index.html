@@ -205,12 +205,22 @@ body{font-family:'Cormorant Garamond',Georgia,serif;background:var(--cream);colo
 <div class="w-badge">Paddock 17</div>
 <h1 class="w-title">The Vintage<br><em>Equestrian Club</em></h1>
 <p class="w-sub">Welcome to the Paddock — reserved for the neighbors, friends, and families who make Middleburg home.</p>
-<div class="w-form">
-<div class="w-field"><label>First Name</label><input type="text" id="wFirst" placeholder="e.g. Alexandra"></div>
-<div class="w-field"><label>Last Name</label><input type="text" id="wLast" placeholder="e.g. Sherman"></div>
-<div class="w-field"><label>Email</label><input type="email" id="wEmail" placeholder="your@email.com"></div>
-<div class="w-field"><label>Member Code</label><input type="text" id="wCode" placeholder="Enter your code" autocomplete="off"></div>
-<button class="w-btn tap" onclick="createMember()">Enter the Paddock</button>
+<div class="w-form" id="wForm">
+<div id="wJoinFields" style="display:none">
+<div class="w-field"><label>First Name</label><input type="text" id="wFirst" maxlength="60" autocomplete="given-name" placeholder="e.g. Alexandra"></div>
+<div class="w-field"><label>Last Name</label><input type="text" id="wLast" maxlength="60" autocomplete="family-name" placeholder="e.g. Sherman"></div>
+</div>
+<div class="w-field"><label>Email</label><input type="email" id="wEmail" maxlength="254" autocomplete="email" placeholder="your@email.com"></div>
+<div class="w-field" id="wInviteField" style="display:none"><label>Invitation Code</label><input type="text" id="wInvite" maxlength="60" autocomplete="off" placeholder="From your invitation"></div>
+<button class="w-btn tap" id="wSend" onclick="startAuth()">Send Sign-In Code</button>
+<p class="w-note" style="margin-top:.9rem"><a href="#" id="wToggle" onclick="toggleJoin();return false" style="color:var(--brass)">New member? Join with an invitation</a></p>
+</div>
+<div class="w-form" id="wCodeForm" style="display:none">
+<p class="w-sub" id="wCodeMsg" style="margin-bottom:1.2rem"></p>
+<div class="w-field"><label>6-Digit Code</label><input type="text" id="wCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" onkeydown="if(event.key==='Enter')verifyAuth()"></div>
+<button class="w-btn tap" id="wVerify" onclick="verifyAuth()">Enter the Paddock</button>
+<p class="w-note" style="margin-top:.9rem"><a href="#" onclick="backToEmail();return false" style="color:var(--brass)">Use a different email or resend</a></p>
+</div>
 </div>
 <p class="w-note">Paddock 17 is by invitation only for residents of the 20117.</p>
 </div>
@@ -307,27 +317,66 @@ function getKP(){return[
 {tag:"Chef's Small Batch Feature",date:'March 8, 2026',title:"This Week's Special: Pan-Seared Halibut",text:"Pacific halibut with a brown butter and caper pan sauce, served over celery root purée with crispy capers and a handful of watercress dressed in lemon. Clean, simple, and exactly what the season calls for. Available at dinner Thursday through Saturday — we only have it for a few nights, so ask your server when you sit down.",by:'— Chef Colby'},
 {tag:'Behind the Scenes',date:'January 28, 2026',title:'The Sourdough Starter Has a Name',text:"Her name is Eleanor. She's been with us since day one — fed every morning, rested every night. She's responsible for the dinner rolls, the croutons, and the grilled sourdough on the tartare plate. If you've ever wondered why the bread here tastes different, now you know who to thank.",by:'— Chef Colby'}
 ]}
+var joining=false,pendingEmail='';
+function setJoin(on){
+joining=on;
+document.getElementById('wJoinFields').style.display=on?'block':'none';
+document.getElementById('wInviteField').style.display=on&&!document.getElementById('wInvite').dataset.fromLink?'block':'none';
+document.getElementById('wToggle').textContent=on?'Already a member? Sign in':'New member? Join with an invitation';
+}
+function toggleJoin(){setJoin(!joining)}
 (function boot(){
+var inv=new URLSearchParams(location.search).get('invite');
+if(inv){
+// Arrived from the QR code: keep the invitation, then tidy the address bar.
+var el=document.getElementById('wInvite');el.value=inv;el.dataset.fromLink='1';
+history.replaceState(null,'',location.pathname);
+}
 if(localStorage.getItem(TOKEN_KEY)){
-document.querySelector('.w-form').style.display='none';
+document.getElementById('wForm').style.display='none';
 api('GET','/api/me').then(function(m){D=m;showApp()}).catch(function(err){
 if(err&&err.message==='signed out')return;
 document.querySelector('.w-note').textContent='We couldn’t reach the Paddock. Please refresh to try again.';
 });
 return;
 }
-// Members from the previous version only had data on this device: prefill so they can re-join and keep their history.
+if(inv){setJoin(true);document.querySelector('.w-sub').textContent='You’ve been invited to Paddock 17. Tell us your name and we’ll email you a code to finish joining.'}
+// Members from the previous version: prefill their details so signing in is one tap.
 var old=null;try{old=JSON.parse(localStorage.getItem(LEGACY_KEY))}catch(e){}
 if(old){document.getElementById('wFirst').value=old.first||'';document.getElementById('wLast').value=old.last||'';document.getElementById('wEmail').value=old.email||''}
 })();
-function createMember(){
-var f=document.getElementById('wFirst').value.trim(),l=document.getElementById('wLast').value.trim(),e=document.getElementById('wEmail').value.trim(),c=document.getElementById('wCode').value.trim();
-if(!f||!l){alert('Please enter your name.');return}if(!e){alert('Please enter your email.');return}if(!c){alert('Please enter your member code.');return}
-var btn=document.querySelector('.w-btn');btn.disabled=true;
-api('POST','/api/join',{first:f,last:l,email:e,code:c}).then(function(res){
+function startAuth(){
+var e=document.getElementById('wEmail').value.trim(),body={email:e};
+if(!e){alert('Please enter your email.');return}
+if(joining){
+body.first=document.getElementById('wFirst').value.trim();body.last=document.getElementById('wLast').value.trim();body.invite=document.getElementById('wInvite').value.trim();
+if(!body.first||!body.last){alert('Please enter your name.');return}
+if(!body.invite){alert('Please enter your invitation code.');return}
+}
+var btn=document.getElementById('wSend');btn.disabled=true;
+api('POST','/api/auth/start',body).then(function(){
+pendingEmail=e;
+document.getElementById('wCodeMsg').textContent=joining?
+'We’ve sent a 6-digit code to '+e+'. Enter it below to finish joining.':
+'If '+e+' has a Paddock 17 membership, a 6-digit sign-in code is on its way.';
+document.getElementById('wForm').style.display='none';
+document.getElementById('wCodeForm').style.display='block';
+document.getElementById('wCode').value='';
+setTimeout(function(){document.getElementById('wCode').focus()},100);
+}).catch(fail).then(function(){btn.disabled=false});
+}
+function verifyAuth(){
+var c=document.getElementById('wCode').value.replace(/\D/g,'');
+if(c.length!==6){alert('Please enter the 6-digit code from your email.');return}
+var btn=document.getElementById('wVerify');btn.disabled=true;
+api('POST','/api/auth/verify',{email:pendingEmail,code:c}).then(function(res){
 localStorage.setItem(TOKEN_KEY,res.token);localStorage.removeItem(LEGACY_KEY);
 D=res.member;showApp();
 }).catch(fail).then(function(){btn.disabled=false});
+}
+function backToEmail(){
+document.getElementById('wCodeForm').style.display='none';
+document.getElementById('wForm').style.display='block';
 }
 function loadEvents(){return api('GET','/api/events').then(function(evs){EVENTS=evs}).catch(fail)}
 function refreshMe(){return api('GET','/api/me').then(function(m){D=m}).catch(fail)}
@@ -438,7 +487,7 @@ html+='<div class="cm-r"><div class="cm-t">'+esc(c.reply)+'</div><div class="cm-
 function renderProfile(){
 var html='<div class="prc stagger">';
 html+='<div class="pr"><div><div class="prl">Name</div><div class="prv">'+esc(D.first+' '+D.last)+'</div></div><button class="pre" onclick="editName()">Edit</button></div>';
-html+='<div class="pr"><div><div class="prl">Email</div><div class="prv">'+esc(D.email)+'</div></div><button class="pre" onclick="editField(\'email\',\'Email\')">Edit</button></div>';
+html+='<div class="pr"><div><div class="prl">Email</div><div class="prv">'+esc(D.email)+'</div></div></div>';
 html+='<div class="pr"><div><div class="prl">Member Since</div><div class="prv">'+esc(D.memberSince)+'</div></div></div>';
 html+='<div class="pr"><div><div class="prl">Member ID</div><div class="prv">'+esc(D.memberId)+'</div></div></div>';
 html+='<div class="pr"><div><div class="prl">Visits</div><div class="prv">'+esc(D.visits)+'</div></div></div></div>';
@@ -481,8 +530,8 @@ D=m;v.style.borderColor='var(--brass)';setTimeout(function(){v.style.borderColor
 }).catch(fail);
 }
 function signOut(){
-if(!confirm('Sign out of Paddock 17 on this device?\n\nTo sign back in later, you’ll need the Paddock 17 team to restore your access.'))return;
-localStorage.removeItem(TOKEN_KEY);location.reload();
+if(!confirm('Sign out of Paddock 17 on this device? You can sign back in any time with your email.'))return;
+api('POST','/api/auth/signout').catch(function(){}).then(function(){localStorage.removeItem(TOKEN_KEY);location.reload()});
 }
 function closeModal(e){if(e&&e.target&&e.target!==document.getElementById('modalOverlay'))return;document.getElementById('modalOverlay').classList.remove('sh')}
 </script>
