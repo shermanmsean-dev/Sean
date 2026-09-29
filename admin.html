@@ -189,72 +189,73 @@ body{font-family:'Cormorant Garamond',Georgia,serif;background:var(--dark);color
 <script>
 var adminKey = null;
 var allMembers = [];
-var eventNames = {
-  'e1': 'Friends & Family Pre-Opening',
-  'e2': 'Meet the Team',
-  'e3': 'Grand Opening'
-};
+var filteredMembers = [];
+var eventNames = {};
+var currentEmail = null;
+
+function adminFetch(url, options) {
+  options = options || {};
+  options.headers = Object.assign({ 'x-admin-key': adminKey }, options.headers || {});
+  return fetch(url, options).then(function(r) {
+    return r.json().catch(function() { return {}; }).then(function(data) {
+      if (r.status === 401) throw new Error('unauthorized');
+      if (!r.ok) throw new Error(data.error || 'Server error');
+      return data;
+    });
+  });
+}
+
+function applyData(data) {
+  allMembers = data.members;
+  eventNames = {};
+  data.events.forEach(function(ev) { eventNames[ev.id] = ev.name; });
+  renderStats(allMembers);
+  filterMembers();
+}
 
 function doLogin() {
   var pw = document.getElementById('pwInput').value;
   if (!pw) return;
   adminKey = pw;
-  fetch('/api/admin/members', { headers: { 'x-admin-key': pw } })
-    .then(function(r) {
-      if (r.status === 401) throw new Error('unauthorized');
-      if (!r.ok) throw new Error('server error');
-      return r.json();
-    })
+  adminFetch('/api/admin/members')
     .then(function(data) {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('adminShell').style.display = 'block';
-      allMembers = data;
-      renderStats(data);
-      renderTable(data);
+      applyData(data);
     })
     .catch(function(err) {
       var errEl = document.getElementById('loginError');
       errEl.style.display = 'block';
-      errEl.textContent = err.message === 'unauthorized' ? 'Incorrect password. Please try again.' : 'Could not connect to server.';
+      errEl.textContent = err.message === 'unauthorized' ? 'Incorrect password. Please try again.' :
+        err instanceof TypeError ? 'Could not connect to server.' : err.message;
       adminKey = null;
     });
 }
 
 function loadMembers() {
   document.getElementById('memberList').innerHTML = '<div class="spinner"></div>';
-  fetch('/api/admin/members', { headers: { 'x-admin-key': adminKey } })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      allMembers = data;
-      renderStats(data);
-      var q = document.getElementById('searchInput').value;
-      renderTable(q ? allMembers.filter(function(m) { return matchSearch(m, q); }) : allMembers);
-    });
+  return adminFetch('/api/admin/members')
+    .then(applyData)
+    .catch(handleError);
+}
+
+function handleError(err) {
+  if (err.message === 'unauthorized') { logout(); return; }
+  alert(err instanceof TypeError ? 'Network error. Please try again.' : 'Error: ' + err.message);
 }
 
 function renderStats(members) {
   var totalVisits = members.reduce(function(s, m) { return s + (m.visits || 0); }, 0);
-  var totalRsvps = members.reduce(function(s, m) {
-    var r = safeJson(m.rsvps, []);
-    return s + r.length;
-  }, 0);
-  var totalMsgs = members.reduce(function(s, m) {
-    var c = safeJson(m.comments, []);
-    return s + c.length;
-  }, 0);
+  var totalRsvps = members.reduce(function(s, m) { return s + m.rsvps.length; }, 0);
+  var totalMsgs = members.reduce(function(s, m) { return s + m.comments.length; }, 0);
   document.getElementById('statTotal').textContent = members.length;
   document.getElementById('statVisits').textContent = totalVisits;
   document.getElementById('statRsvps').textContent = totalRsvps;
   document.getElementById('statMsgs').textContent = totalMsgs;
 }
 
-function safeJson(val, fallback) {
-  if (!val) return fallback;
-  if (typeof val === 'object') return val;
-  try { return JSON.parse(val); } catch(e) { return fallback; }
-}
-
 function renderTable(members) {
+  filteredMembers = members;
   document.getElementById('filterCount').textContent = members.length + ' member' + (members.length !== 1 ? 's' : '');
   if (members.length === 0) {
     document.getElementById('memberList').innerHTML = '<div class="empty-state">No members found.</div>';
@@ -264,54 +265,62 @@ function renderTable(members) {
     '<th>Member</th><th>ID</th><th>Since</th><th>Visits</th><th>RSVPs</th><th>Messages</th><th></th>' +
     '</tr></thead><tbody>';
   members.forEach(function(m, i) {
-    var rsvps = safeJson(m.rsvps, []);
-    var comments = safeJson(m.comments, []);
-    var hasUnreplied = comments.some(function(c) { return !c.reply; });
+    var hasUnreplied = m.comments.some(function(c) { return !c.reply; });
     html += '<tr class="member-row" onclick="openMember(' + i + ')">' +
-      '<td><div class="member-name">' + esc(m.first_name || '') + ' ' + esc(m.last_name || '') + '</div>' +
+      '<td><div class="member-name">' + esc(m.first || '') + ' ' + esc(m.last || '') + '</div>' +
       '<div class="member-email">' + esc(m.email || '') + '</div></td>' +
-      '<td><div class="member-id">' + esc(m.member_id || '—') + '</div></td>' +
-      '<td><div class="member-since">' + esc(m.member_since || '—') + '</div></td>' +
+      '<td><div class="member-id">' + esc(m.memberId || '—') + '</div></td>' +
+      '<td><div class="member-since">' + esc(m.memberSince || '—') + '</div></td>' +
       '<td><div class="member-visits">' + (m.visits || 0) + '</div></td>' +
-      '<td><div class="member-since">' + rsvps.length + '</div></td>' +
-      '<td>' + (comments.length > 0 ? '<span class="has-msgs">' + (hasUnreplied ? '● ' : '') + comments.length + ' msg' + (comments.length !== 1 ? 's' : '') + '</span>' : '<span style="color:var(--muted);font-size:.58rem">—</span>') + '</td>' +
+      '<td><div class="member-since">' + m.rsvps.length + '</div></td>' +
+      '<td>' + (m.comments.length > 0 ? '<span class="has-msgs">' + (hasUnreplied ? '● ' : '') + m.comments.length + ' msg' + (m.comments.length !== 1 ? 's' : '') + '</span>' : '<span style="color:var(--muted);font-size:.58rem">—</span>') + '</td>' +
       '<td><span class="row-arrow">›</span></td>' +
       '</tr>';
   });
   html += '</tbody></table>';
   document.getElementById('memberList').innerHTML = html;
-  // Store filtered list for index lookup
-  window._filteredMembers = members;
+}
+
+function currentMember() {
+  return allMembers.find(function(m) { return m.email === currentEmail; });
 }
 
 function openMember(idx) {
-  var members = window._filteredMembers || allMembers;
-  var m = members[idx];
+  var m = filteredMembers[idx];
   if (!m) return;
-  var rsvps = safeJson(m.rsvps, []);
-  var comments = safeJson(m.comments, []);
+  currentEmail = m.email;
+  renderPanel();
+  document.getElementById('detailPanel').classList.add('open');
+  document.getElementById('overlay').classList.add('show');
+}
+
+function renderPanel() {
+  var m = currentMember();
+  if (!m) { closePanel(); return; }
   var prefs = [];
-  if (m.water_pref) prefs.push({ l: 'Water', v: m.water_pref });
-  if (m.seat_pref) prefs.push({ l: 'Seating', v: m.seat_pref });
+  if (m.waterPref) prefs.push({ l: 'Water', v: m.waterPref });
+  if (m.seatPref) prefs.push({ l: 'Seating', v: m.seatPref });
   if (m.dietary) prefs.push({ l: 'Dietary', v: m.dietary });
 
-  document.getElementById('panelName').textContent = (m.first_name || '') + ' ' + (m.last_name || '');
-  document.getElementById('panelId').textContent = m.member_id || '';
+  document.getElementById('panelName').textContent = (m.first || '') + ' ' + (m.last || '');
+  document.getElementById('panelId').textContent = m.memberId || '';
 
   var html = '';
 
   // Stats
   html += '<div class="detail-section"><div class="detail-label">Overview</div><div class="detail-grid">';
-  html += '<div class="detail-item"><div class="di-label">Member Since</div><div class="di-value">' + esc(m.member_since || '—') + '</div></div>';
+  html += '<div class="detail-item"><div class="di-label">Member Since</div><div class="di-value">' + esc(m.memberSince || '—') + '</div></div>';
   html += '<div class="detail-item"><div class="di-label">Email</div><div class="di-value" style="font-size:.78rem;word-break:break-all">' + esc(m.email || '—') + '</div></div>';
-  html += '<div class="detail-item"><div class="di-label">Visits</div><div class="di-value big">' + (m.visits || 0) + '</div></div>';
-  html += '<div class="detail-item"><div class="di-label">RSVPs</div><div class="di-value big">' + rsvps.length + '</div></div>';
+  html += '<div class="detail-item"><div class="di-label">Visits</div><div class="di-value big">' + (m.visits || 0) + '</div>' +
+    '<div style="margin-top:.5rem;display:flex;gap:.4rem"><button class="btn-reply" onclick="changeVisits(1, this)">+ Visit</button>' +
+    '<button class="btn-reply" onclick="changeVisits(-1, this)">−</button></div></div>';
+  html += '<div class="detail-item"><div class="di-label">RSVPs</div><div class="di-value big">' + m.rsvps.length + '</div></div>';
   html += '</div></div>';
 
   // RSVPs
-  if (rsvps.length > 0) {
+  if (m.rsvps.length > 0) {
     html += '<div class="detail-section"><div class="detail-label">RSVPs</div><div class="rsvp-chips">';
-    rsvps.forEach(function(id) {
+    m.rsvps.forEach(function(id) {
       html += '<span class="rsvp-chip">' + esc(eventNames[id] || id) + '</span>';
     });
     html += '</div></div>';
@@ -333,11 +342,11 @@ function openMember(idx) {
   }
 
   // Messages
-  html += '<div class="detail-section"><div class="detail-label">Messages (' + comments.length + ')</div>';
-  if (comments.length === 0) {
+  html += '<div class="detail-section"><div class="detail-label">Messages (' + m.comments.length + ')</div>';
+  if (m.comments.length === 0) {
     html += '<div class="no-msgs">No messages yet.</div>';
   } else {
-    comments.forEach(function(c, ci) {
+    m.comments.forEach(function(c, ci) {
       var d = new Date(c.date);
       var ds = isNaN(d) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
         ' at ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -349,78 +358,84 @@ function openMember(idx) {
         var rd = c.replyDate ? new Date(c.replyDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
         html += '<div class="reply-existing"><div class="msg-text">' + esc(c.reply) + '</div>';
         html += '<div class="msg-meta">Owner · ' + rd + '</div></div>';
-        html += '<textarea class="reply-input" id="reply_' + ci + '" placeholder="Edit reply…">' + esc(c.reply) + '</textarea>';
+        html += '<textarea class="reply-input" id="reply_' + ci + '" maxlength="2000" placeholder="Edit reply…">' + esc(c.reply) + '</textarea>';
       } else {
-        html += '<textarea class="reply-input" id="reply_' + ci + '" placeholder="Write a reply…"></textarea>';
+        html += '<textarea class="reply-input" id="reply_' + ci + '" maxlength="2000" placeholder="Write a reply…"></textarea>';
       }
-      html += '<button class="btn-reply" onclick="sendReply(\'' + esc(m.email) + '\',' + ci + ')">Send Reply</button>';
+      html += '<button class="btn-reply" onclick="sendReply(' + ci + ', this)">Send Reply</button>';
       html += '</div></div>';
     });
   }
   html += '</div>';
 
-  document.getElementById('panelBody').innerHTML = html;
-  document.getElementById('detailPanel').classList.add('open');
-  document.getElementById('overlay').classList.add('show');
+  // Access
+  html += '<div class="detail-section"><div class="detail-label">App Access</div>';
+  if (m.hasAccess) {
+    html += '<div class="no-msgs" style="margin-bottom:.6rem">Signed in on one device. If they’ve lost access or changed phones, reset it and they can re-join with their email and the member code. Their history is kept.</div>';
+    html += '<button class="btn-reply" onclick="resetAccess(this)">Reset Access</button>';
+  } else {
+    html += '<div class="no-msgs">Not signed in. They can re-join with their email and the member code.</div>';
+  }
+  html += '</div>';
 
-  // Store current member email for reply
-  window._currentMemberEmail = m.email;
+  document.getElementById('panelBody').innerHTML = html;
 }
 
-function sendReply(email, commentIdx) {
-  var inp = document.getElementById('reply_' + commentIdx);
-  if (!inp) return;
-  var text = inp.value.trim();
-  if (!text) return;
-  var btn = inp.parentElement.querySelector('.btn-reply');
+function panelAction(btn, busyText, url, body) {
   btn.disabled = true;
-  btn.textContent = 'Sending…';
-  fetch('/api/admin/reply', {
+  btn.textContent = busyText;
+  return adminFetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
-    body: JSON.stringify({ email: email, commentIdx: commentIdx, reply: text })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
   })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.ok) {
-        loadMembers();
-        // Refresh panel
-        var updated = allMembers.find(function(m) { return m.email === email; });
-        if (updated) {
-          var comments = safeJson(updated.comments, []);
-          var ci = allMembers.findIndex(function(m) { return m.email === email; });
-          openMember(ci);
-        }
-        btn.textContent = 'Sent ✓';
-      } else {
-        btn.disabled = false;
-        btn.textContent = 'Send Reply';
-        alert('Error: ' + (data.error || 'Unknown error'));
-      }
-    })
-    .catch(function() {
+    .then(loadMembers)
+    .then(renderPanel)
+    .catch(function(err) {
       btn.disabled = false;
-      btn.textContent = 'Send Reply';
-      alert('Network error. Please try again.');
+      handleError(err);
+      renderPanel();
     });
 }
 
+function sendReply(ci, btn) {
+  var m = currentMember();
+  var inp = document.getElementById('reply_' + ci);
+  if (!m || !inp || !m.comments[ci]) return;
+  var text = inp.value.trim();
+  if (!text) return;
+  panelAction(btn, 'Sending…', '/api/admin/reply', { email: m.email, commentId: m.comments[ci].id, reply: text });
+}
+
+function changeVisits(delta, btn) {
+  var m = currentMember();
+  if (!m) return;
+  panelAction(btn, '…', '/api/admin/visits', { email: m.email, delta: delta });
+}
+
+function resetAccess(btn) {
+  var m = currentMember();
+  if (!m) return;
+  if (!confirm('Sign ' + (m.first || 'this member') + ' out of the app? They can re-join with their email and the member code.')) return;
+  panelAction(btn, 'Resetting…', '/api/admin/reset-access', { email: m.email });
+}
+
 function closePanel() {
+  currentEmail = null;
   document.getElementById('detailPanel').classList.remove('open');
   document.getElementById('overlay').classList.remove('show');
 }
 
 function filterMembers() {
   var q = document.getElementById('searchInput').value.toLowerCase().trim();
-  var filtered = q ? allMembers.filter(function(m) { return matchSearch(m, q); }) : allMembers;
-  renderTable(filtered);
+  renderTable(q ? allMembers.filter(function(m) { return matchSearch(m, q); }) : allMembers);
 }
 
 function matchSearch(m, q) {
-  return (m.first_name || '').toLowerCase().includes(q) ||
-    (m.last_name || '').toLowerCase().includes(q) ||
+  return (m.first || '').toLowerCase().includes(q) ||
+    (m.last || '').toLowerCase().includes(q) ||
     (m.email || '').toLowerCase().includes(q) ||
-    (m.member_id || '').toLowerCase().includes(q);
+    (m.memberId || '').toLowerCase().includes(q);
 }
 
 function esc(str) {
@@ -432,6 +447,7 @@ function esc(str) {
 function logout() {
   adminKey = null;
   allMembers = [];
+  closePanel();
   document.getElementById('adminShell').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('pwInput').value = '';

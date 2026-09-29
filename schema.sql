@@ -1,5 +1,5 @@
 -- Paddock 17 Database Schema
--- Run this script to initialize the database before starting the server.
+-- The server also applies this automatically on startup.
 
 CREATE TABLE IF NOT EXISTS members (
   id            SERIAL PRIMARY KEY,
@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS members (
   seat_pref     TEXT,
   dietary       TEXT,
   notes         TEXT,
+  token_hash    TEXT UNIQUE,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

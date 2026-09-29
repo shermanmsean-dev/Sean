@@ -237,7 +237,7 @@ body{font-family:'Cormorant Garamond',Georgia,serif;background:var(--cream);colo
 <div class="vb stagger"><div class="vb-n" id="visitCount">0</div><div class="vb-l">Visits</div></div>
 <div class="sl stagger">Quick Actions</div>
 <div class="qg stagger">
-<button class="qb tap"><div class="qi"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="qt">Reserve a Table</div></button>
+<button class="qb tap" onclick="switchTab('events-link')"><div class="qi"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="qt">Member Events</div></button>
 <button class="qb tap" onclick="switchTab('kitchen-link')"><div class="qi"><svg viewBox="0 0 24 24"><path d="M3 3h18v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3z"/><path d="M3 8h18"/></svg></div><div class="qt">From the Kitchen</div></button>
 </div>
 <div class="eq-div"><svg viewBox="0 0 24 24"><path d="M6 12C6 7.5 9.5 4 13 4s5.5 2.5 5.5 5.5v3.5a1.5 1.5 0 0 1-1.5 1.5h-1v-5a3.5 3.5 0 0 0-7 0v5H8A1.5 1.5 0 0 1 6.5 13V12z" stroke-linecap="round"/><circle cx="8" cy="15.5" r="1"/><circle cx="18" cy="15.5" r="1"/></svg></div>
@@ -282,35 +282,55 @@ body{font-family:'Cormorant Garamond',Georgia,serif;background:var(--cream);colo
 <!-- MODAL -->
 <div class="mo" id="modalOverlay" onclick="closeModal(event)"><div class="ml"><div class="mh"></div><div id="modalContent"></div></div></div>
 <script>
-var SK='vec_p17_v3';
-function ld(){try{return JSON.parse(localStorage.getItem(SK))||null}catch(e){return null}}
-function sv(d){
-  localStorage.setItem(SK,JSON.stringify(d));
-  fetch('/api/members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-    email:d.email,first:d.first,last:d.last,memberId:d.memberId,memberSince:d.memberSince,
-    visits:d.visits,rsvps:d.rsvps,comments:d.comments,
-    waterPref:d.waterPref,seatPref:d.seatPref,dietary:d.dietary,notes:d.notes
-  })}).catch(function(){});
+var TOKEN_KEY='p17_token',LEGACY_KEY='vec_p17_v3';
+var D=null,EVENTS=[];
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function api(method,url,body){
+var t=localStorage.getItem(TOKEN_KEY),h={};
+if(t)h['Authorization']='Bearer '+t;
+if(body)h['Content-Type']='application/json';
+return fetch(url,{method:method,headers:h,body:body?JSON.stringify(body):undefined}).then(function(r){
+return r.json().catch(function(){return{}}).then(function(data){
+if(r.status===401&&t){localStorage.removeItem(TOKEN_KEY);location.reload();throw new Error('signed out')}
+if(!r.ok)throw new Error(data.error||'Something went wrong. Please try again.');
+return data;
+});
+});
 }
-function getEv(){return[
-{id:'e1',name:'Friends & Family Pre-Opening',date:'2026-05-10',time:'6:00 PM',desc:'Complimentary first-look dinner for Paddock members and their guests before anyone else sets foot in the restaurant.',seats:40,taken:0,price:'Complimentary'},
-{id:'e2',name:'Meet the Team',date:'2026-05-15',time:'5:30 PM',desc:'Casual evening with passed bites and cocktails, kitchen tour, meet the chef and bar team. No reservation needed.',seats:60,taken:0,price:'Complimentary'},
-{id:'e3',name:'Grand Opening',date:'2026-05-18',time:'5:00 PM',desc:'Doors officially open. Full dinner service, bar open, Paddock 17 members get priority seating before the public.',seats:80,taken:0,price:'À la carte'}
-]}
+function fail(err){
+if(err&&err.message==='signed out')return;
+alert(err instanceof TypeError?'We couldn’t reach the Paddock. Please check your connection and try again.':err.message);
+}
 function getKP(){return[
 {tag:'Sneak Peek',date:'March 8, 2026',title:"Chef Colby's Spring Inspiration",text:"Every season I start the same way — I drive the back roads, visit the farms, and let what's actually growing tell me what the menu should be. This spring it's all pointing toward morels, spring onions, early strawberries, and the first tender lettuces out of the valley. Expect lighter, brighter plates. Less sauce, more intention. I can't wait to share it with you.",by:'— Chef Colby'},
 {tag:"Chef's Note",date:'March 5, 2026',title:'Thank You for Having Me',text:"I don't take lightly what it means to cook in a town like Middleburg. This community has a standard — for hospitality, for quality, for the way people look after one another. Getting the chance to be part of that, to build something here, is genuinely one of the great honors of my career. Paddock 17 exists because of the people in this zip code. I just hope the food is worthy of the room.",by:'— Chef Colby'},
 {tag:"Chef's Small Batch Feature",date:'March 8, 2026',title:"This Week's Special: Pan-Seared Halibut",text:"Pacific halibut with a brown butter and caper pan sauce, served over celery root purée with crispy capers and a handful of watercress dressed in lemon. Clean, simple, and exactly what the season calls for. Available at dinner Thursday through Saturday — we only have it for a few nights, so ask your server when you sit down.",by:'— Chef Colby'},
 {tag:'Behind the Scenes',date:'January 28, 2026',title:'The Sourdough Starter Has a Name',text:"Her name is Eleanor. She's been with us since day one — fed every morning, rested every night. She's responsible for the dinner rolls, the croutons, and the grilled sourdough on the tartare plate. If you've ever wondered why the bread here tastes different, now you know who to thank.",by:'— Chef Colby'}
 ]}
-var D=ld();if(D){sv(D);showApp();}
-function createMember(){
-var f=document.getElementById('wFirst').value.trim(),l=document.getElementById('wLast').value.trim(),e=document.getElementById('wEmail').value.trim(),c=document.getElementById('wCode').value.trim().toUpperCase();
-if(!f||!l){alert('Please enter your name.');return}if(!e){alert('Please enter your email.');return}if(c!=='RES'){alert('Invalid member code. Please try again.');return}
-var n=new Date(),ms=['January','February','March','April','May','June','July','August','September','October','November','December'];
-D={first:f,last:l,email:e,memberSince:ms[n.getMonth()]+' '+n.getFullYear(),memberId:'VEC-'+n.getFullYear()+'-'+(1000+Math.floor(Math.random()*9000)),visits:0,rsvps:[],comments:[]};
-sv(D);showApp();
+(function boot(){
+if(localStorage.getItem(TOKEN_KEY)){
+document.querySelector('.w-form').style.display='none';
+api('GET','/api/me').then(function(m){D=m;showApp()}).catch(function(err){
+if(err&&err.message==='signed out')return;
+document.querySelector('.w-note').textContent='We couldn’t reach the Paddock. Please refresh to try again.';
+});
+return;
 }
+// Members from the previous version only had data on this device: prefill so they can re-join and keep their history.
+var old=null;try{old=JSON.parse(localStorage.getItem(LEGACY_KEY))}catch(e){}
+if(old){document.getElementById('wFirst').value=old.first||'';document.getElementById('wLast').value=old.last||'';document.getElementById('wEmail').value=old.email||''}
+})();
+function createMember(){
+var f=document.getElementById('wFirst').value.trim(),l=document.getElementById('wLast').value.trim(),e=document.getElementById('wEmail').value.trim(),c=document.getElementById('wCode').value.trim();
+if(!f||!l){alert('Please enter your name.');return}if(!e){alert('Please enter your email.');return}if(!c){alert('Please enter your member code.');return}
+var btn=document.querySelector('.w-btn');btn.disabled=true;
+api('POST','/api/join',{first:f,last:l,email:e,code:c}).then(function(res){
+localStorage.setItem(TOKEN_KEY,res.token);localStorage.removeItem(LEGACY_KEY);
+D=res.member;showApp();
+}).catch(fail).then(function(){btn.disabled=false});
+}
+function loadEvents(){return api('GET','/api/events').then(function(evs){EVENTS=evs}).catch(fail)}
+function refreshMe(){return api('GET','/api/me').then(function(m){D=m}).catch(fail)}
 function showApp(){
 document.getElementById('welcomePage').classList.remove('active');
 document.getElementById('homePage').classList.add('active');
@@ -319,6 +339,7 @@ renderHome();
 setTimeout(triggerStagger,100);
 var mc=document.getElementById('memberCard');
 if(mc){mc.style.animation='none';mc.offsetHeight;mc.style.animation=''}
+loadEvents().then(function(){renderHome();setTimeout(triggerStagger,80)});
 }
 function triggerStagger(){
 var els=document.querySelectorAll('.page.active .stagger:not(.in)');
@@ -333,40 +354,44 @@ document.getElementById('appScroll').scrollTop=0;
 var m={'home-link':'homePage','events-link':'eventsPage','kitchen-link':'kitchenPage','perks-link':'perksPage','profile-link':'profilePage'};
 document.getElementById(m[id]).classList.add('active');
 if(id==='home-link')renderHome();
-if(id==='events-link')renderEvents();
+if(id==='events-link'){renderEvents();loadEvents().then(function(){renderEvents();setTimeout(triggerStagger,80)})}
 if(id==='kitchen-link')renderKitchen();
-if(id==='perks-link')renderPerks();
+if(id==='perks-link'){renderPerks();refreshMe().then(renderComments)}
 if(id==='profile-link')renderProfile();
 setTimeout(triggerStagger,80);
 }
+function isRsvpd(ev){return D.rsvps.indexOf(ev.id)>-1}
+function isFull(ev){return ev.taken>=ev.seats&&!isRsvpd(ev)}
 function renderHome(){
 if(!D)return;
 var h=new Date().getHours();
 var timeWord=h>=5&&h<12?'Morning':h>=12&&h<17?'Afternoon':'Evening';
-document.getElementById('homeGreeting').innerHTML='<span>'+timeWord+',</span>'+D.first+'.';
+document.getElementById('homeGreeting').innerHTML='<span>'+timeWord+',</span>'+esc(D.first)+'.';
 document.getElementById('mcNm').textContent=D.first+' '+D.last;
 document.getElementById('mcSince').textContent=D.memberSince;
 document.getElementById('mcId').textContent=D.memberId;
 document.getElementById('visitCount').textContent=D.visits;
-var evs=getEv(),html='',n=0;
-evs.forEach(function(ev){if(n>=3)return;
-var r=D.rsvps.indexOf(ev.id)>-1,f=ev.taken>=ev.seats&&!r;
-var b=r?'<span class="eb eb-r">RSVP\'d</span>':f?'<span class="eb eb-f">Full</span>':'<span class="eb eb-o">Open</span>';
-var d=new Date(ev.date+'T12:00:00'),ds=d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' \u00b7 '+ev.time;
-html+='<div class="ec stagger tap" onclick="switchTab(\'events-link\')"><div class="ei"><div class="en">'+ev.name+b+'</div><div class="edt">'+ds+'</div></div><div class="ea">\u203a</div></div>';n++});
+var html='';
+EVENTS.slice(0,3).forEach(function(ev){
+var b=isRsvpd(ev)?'<span class="eb eb-r">RSVP\'d</span>':isFull(ev)?'<span class="eb eb-f">Full</span>':'<span class="eb eb-o">Open</span>';
+var d=new Date(ev.date+'T12:00:00'),ds=d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' · '+esc(ev.time);
+html+='<div class="ec stagger tap" onclick="switchTab(\'events-link\')"><div class="ei"><div class="en">'+esc(ev.name)+b+'</div><div class="edt">'+ds+'</div></div><div class="ea">›</div></div>'});
+if(!EVENTS.length)html='<div class="pk stagger"><div class="pk-d">New dates are on the way — we’ll share them here first.</div></div>';
 document.getElementById('homeEvents').innerHTML=html;
 }
 function renderEvents(){
-var evs=getEv(),html='';
-evs.forEach(function(ev){var r=D.rsvps.indexOf(ev.id)>-1,f=ev.taken>=ev.seats&&!r;
+var html='';
+EVENTS.forEach(function(ev,i){var r=isRsvpd(ev),f=isFull(ev);
 var d=new Date(ev.date+'T12:00:00'),ds=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-var btn=r?'<button class="ed-b ed-bc tap" onclick="cancelRsvp(\''+ev.id+'\')">Cancel RSVP</button>':f?'<button class="ed-b ed-bf">Fully Booked</button>':'<button class="ed-b ed-br tap" onclick="rsvpEvent(\''+ev.id+'\')">RSVP Now</button>';
-var sl=ev.seats-ev.taken,st=r?'You\'re confirmed':f?'Waitlist available':sl+' of '+ev.seats+' spots remaining';
-html+='<div class="ed stagger"><div class="ed-d">'+ds+' \u00b7 '+ev.time+'</div><div class="ed-n">'+ev.name+'</div><div class="ed-p">'+ev.desc+'</div><div class="ed-m"><div class="ed-mi"><strong>'+ev.price+'</strong></div><div class="ed-mi">'+st+'</div></div>'+btn+'</div>'});
+var btn=r?'<button class="ed-b ed-bc tap" onclick="cancelRsvp('+i+',this)">Cancel RSVP</button>':f?'<button class="ed-b ed-bf">Fully Booked</button>':'<button class="ed-b ed-br tap" onclick="rsvpEvent('+i+',this)">RSVP Now</button>';
+var sl=Math.max(0,ev.seats-ev.taken),st=r?'You\'re confirmed':f?'Fully booked':sl+' of '+ev.seats+' spots remaining';
+html+='<div class="ed stagger"><div class="ed-d">'+ds+' · '+esc(ev.time)+'</div><div class="ed-n">'+esc(ev.name)+'</div><div class="ed-p">'+esc(ev.desc)+'</div><div class="ed-m"><div class="ed-mi"><strong>'+esc(ev.price)+'</strong></div><div class="ed-mi">'+st+'</div></div>'+btn+'</div>'});
+if(!EVENTS.length)html='<div class="pk stagger"><div class="pk-n">No upcoming events</div><div class="pk-d">New dinners and gatherings are being planned. Members will be the first to know.</div></div>';
 document.getElementById('eventsContent').innerHTML=html;
 }
-function rsvpEvent(id){if(D.rsvps.indexOf(id)===-1){D.rsvps.push(id);D.visits++}sv(D);renderEvents();renderHome();setTimeout(triggerStagger,80)}
-function cancelRsvp(id){D.rsvps=D.rsvps.filter(function(r){return r!==id});if(D.visits>0)D.visits--;sv(D);renderEvents();renderHome();setTimeout(triggerStagger,80)}
+function afterRsvp(m){D=m;return loadEvents().then(function(){renderEvents();renderHome();setTimeout(triggerStagger,80)})}
+function rsvpEvent(i,btn){var ev=EVENTS[i];if(!ev)return;btn.disabled=true;api('POST','/api/me/rsvps',{eventId:ev.id}).then(afterRsvp).catch(function(err){fail(err);btn.disabled=false;loadEvents().then(renderEvents)})}
+function cancelRsvp(i,btn){var ev=EVENTS[i];if(!ev)return;btn.disabled=true;api('DELETE','/api/me/rsvps/'+encodeURIComponent(ev.id)).then(afterRsvp).catch(function(err){fail(err);btn.disabled=false})}
 function renderKitchen(){
 var posts=getKP(),html='';
 posts.forEach(function(p){html+='<div class="kc stagger"><div class="kh"><span class="kt">'+p.tag+'</span><span class="kd">'+p.date+'</span></div><div class="kb"><div class="kn">'+p.title+'</div><div class="kx">'+p.text+'</div><div class="kby">'+p.by+'</div></div></div>'});
@@ -375,80 +400,91 @@ document.getElementById('kitchenContent').innerHTML=html;
 function renderPerks(){
 var perks=[
 {n:'Welcome Drink',d:'A complimentary glass of Champagne on arrival — every visit. Because every evening at VEC should begin with a celebration.'},
-{n:'Preferred Reservations',d:'Every night, a set of tables is held exclusively for Paddock 17 members. No matter how busy the season gets, there will always be a seat here for you. Book directly through the app and it\'s yours.'},
+{n:'Preferred Reservations',d:'Every night, a set of tables is held exclusively for Paddock 17 members. No matter how busy the season gets, there will always be a seat here for you.'},
 {n:'Members-Only Events',d:'Exclusive access to wine dinners, tasting events, seasonal suppers, and celebrations designed for the Paddock 17 community.'}
 ];
 var html='';perks.forEach(function(p){html+='<div class="pk stagger"><div class="pk-n">'+p.n+'</div><div class="pk-d">'+p.d+'</div></div>'});
 html+='<div class="eq-div"><svg viewBox="0 0 24 24"><path d="M6 12C6 7.5 9.5 4 13 4s5.5 2.5 5.5 5.5v3.5a1.5 1.5 0 0 1-1.5 1.5h-1v-5a3.5 3.5 0 0 0-7 0v5H8A1.5 1.5 0 0 1 6.5 13V12z" stroke-linecap="round"/><circle cx="8" cy="15.5" r="1"/><circle cx="18" cy="15.5" r="1"/></svg></div>';
 html+='<div class="cs stagger"><div class="sl">A Note to the Owner</div>';
-html+='<div class="cb" id="commentBox"><textarea id="commentInput" placeholder="Share a thought, a suggestion, or just say hello\u2026"></textarea><button class="cs-btn tap" onclick="sendComment()">Send Message</button><p class="cs-note">Every message is read and personally replied to by the owner.</p></div>';
+html+='<div class="cb" id="commentBox"><textarea id="commentInput" maxlength="2000" placeholder="Share a thought, a suggestion, or just say hello…"></textarea><button class="cs-btn tap" onclick="sendComment(this)">Send Message</button><p class="cs-note">Every message is read and personally replied to by the owner.</p></div>';
 html+='<div class="ch" id="commentHistory"></div></div>';
 document.getElementById('perksContent').innerHTML=html;
 renderComments();
 }
-function sendComment(){
+function sendComment(btn){
 var inp=document.getElementById('commentInput'),msg=inp.value.trim();
 if(!msg)return;
-if(!D.comments)D.comments=[];
-D.comments.push({text:msg,date:new Date().toISOString(),from:'member'});
-sv(D);inp.value='';
+btn.disabled=true;
+api('POST','/api/me/comments',{text:msg}).then(function(m){
+D=m;inp.value='';
 var box=document.getElementById('commentBox');
 var conf=document.createElement('div');
 conf.className='sent-confirm';
-conf.innerHTML='<div class="sent-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="sent-text">Message Sent</div><div class="sent-sub">We\u2019ll be in touch.</div>';
+conf.innerHTML='<div class="sent-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="sent-text">Message Sent</div><div class="sent-sub">We’ll be in touch.</div>';
 box.appendChild(conf);
 setTimeout(function(){conf.remove();renderComments()},2000);
+}).catch(fail).then(function(){btn.disabled=false});
 }
 function renderComments(){
-var el=document.getElementById('commentHistory');if(!el)return;
+var el=document.getElementById('commentHistory');if(!el||!D)return;
 if(!D.comments||D.comments.length===0){el.innerHTML='';return}
 var html='';D.comments.forEach(function(c){
 var d=new Date(c.date),ds=d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' at '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-html+='<div class="cm"><div class="cm-t">'+c.text+'</div><div class="cm-m">You \u00b7 '+ds+'</div></div>';
+html+='<div class="cm"><div class="cm-t">'+esc(c.text)+'</div><div class="cm-m">You · '+ds+'</div></div>';
 if(c.reply){var rd=c.replyDate?new Date(c.replyDate).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
-html+='<div class="cm-r"><div class="cm-t">'+c.reply+'</div><div class="cm-m">Owner \u00b7 '+rd+'</div></div>'}
+html+='<div class="cm-r"><div class="cm-t">'+esc(c.reply)+'</div><div class="cm-m">Owner · '+rd+'</div></div>'}
 });el.innerHTML=html;
 }
 function renderProfile(){
 var html='<div class="prc stagger">';
-html+='<div class="pr"><div><div class="prl">Name</div><div class="prv">'+D.first+' '+D.last+'</div></div><button class="pre" onclick="editName()">Edit</button></div>';
-html+='<div class="pr"><div><div class="prl">Email</div><div class="prv">'+D.email+'</div></div><button class="pre" onclick="editField(\'email\',\'Email\')">Edit</button></div>';
-html+='<div class="pr"><div><div class="prl">Member Since</div><div class="prv">'+D.memberSince+'</div></div></div>';
-html+='<div class="pr"><div><div class="prl">Member ID</div><div class="prv">'+D.memberId+'</div></div></div>';
-html+='<div class="pr"><div><div class="prl">Visits</div><div class="prv">'+D.visits+'</div></div></div></div>';
+html+='<div class="pr"><div><div class="prl">Name</div><div class="prv">'+esc(D.first+' '+D.last)+'</div></div><button class="pre" onclick="editName()">Edit</button></div>';
+html+='<div class="pr"><div><div class="prl">Email</div><div class="prv">'+esc(D.email)+'</div></div><button class="pre" onclick="editField(\'email\',\'Email\')">Edit</button></div>';
+html+='<div class="pr"><div><div class="prl">Member Since</div><div class="prv">'+esc(D.memberSince)+'</div></div></div>';
+html+='<div class="pr"><div><div class="prl">Member ID</div><div class="prv">'+esc(D.memberId)+'</div></div></div>';
+html+='<div class="pr"><div><div class="prl">Visits</div><div class="prv">'+esc(D.visits)+'</div></div></div></div>';
 html+='<div class="sl stagger" style="margin-top:1rem">Preferences</div><div class="prc stagger">';
-html+='<div class="pr"><div><div class="prl">Water</div><div class="prv">'+(D.waterPref||'Not set')+'</div></div><button class="pre" onclick="editSel(\'waterPref\',\'Water\',[\'Still\',\'Sparkling\',\'No preference\'])">Edit</button></div>';
-html+='<div class="pr"><div><div class="prl">Seating</div><div class="prv">'+(D.seatPref||'Not set')+'</div></div><button class="pre" onclick="editSel(\'seatPref\',\'Seating\',[\'Bar\',\'Booth\',\'Table\',\'Terrace\',\'No preference\'])">Edit</button></div>';
-html+='<div class="pr"><div><div class="prl">Dietary</div><div class="prv">'+(D.dietary||'None')+'</div></div><button class="pre" onclick="editField(\'dietary\',\'Dietary Notes\')">Edit</button></div></div>';
+html+='<div class="pr"><div><div class="prl">Water</div><div class="prv">'+esc(D.waterPref||'Not set')+'</div></div><button class="pre" onclick="editSel(\'waterPref\',\'Water\',[\'Still\',\'Sparkling\',\'No preference\'])">Edit</button></div>';
+html+='<div class="pr"><div><div class="prl">Seating</div><div class="prv">'+esc(D.seatPref||'Not set')+'</div></div><button class="pre" onclick="editSel(\'seatPref\',\'Seating\',[\'Bar\',\'Booth\',\'Table\',\'Terrace\',\'No preference\'])">Edit</button></div>';
+html+='<div class="pr"><div><div class="prl">Dietary</div><div class="prv">'+esc(D.dietary||'None')+'</div></div><button class="pre" onclick="editField(\'dietary\',\'Dietary Notes\')">Edit</button></div></div>';
 html+='<div class="sl stagger" style="margin-top:1rem">Anything Else</div>';
-html+='<button class="lo tap" style="margin-bottom:.7rem" onclick="signOut()">Sign Out</button>';
-html+='<div class="prc stagger"><textarea id="notesInput" placeholder="Anything you\'d like us to know — a special occasion, a preference, a familiar face to look out for…" style="width:100%;font-family:\'Cormorant Garamond\',Georgia,serif;font-size:.98rem;color:var(--text);background:var(--cbg);border:1px solid rgba(0,0,0,.08);padding:.8rem .9rem;border-radius:6px;resize:vertical;min-height:90px;transition:border-color .3s;outline:none;" onfocus="this.style.borderColor=\'var(--brass)\'" onblur="this.style.borderColor=\'rgba(0,0,0,.08)\'">'+(D.notes||'')+'</textarea><button class="msv tap" style="margin-top:.5rem" onclick="saveNotes()">Save</button></div>';
+html+='<div class="prc stagger"><textarea id="notesInput" maxlength="1000" placeholder="Anything you\'d like us to know — a special occasion, a preference, a familiar face to look out for…" style="width:100%;font-family:\'Cormorant Garamond\',Georgia,serif;font-size:.98rem;color:var(--text);background:var(--cbg);border:1px solid rgba(0,0,0,.08);padding:.8rem .9rem;border-radius:6px;resize:vertical;min-height:90px;transition:border-color .3s;outline:none;" onfocus="this.style.borderColor=\'var(--brass)\'" onblur="this.style.borderColor=\'rgba(0,0,0,.08)\'">'+esc(D.notes||'')+'</textarea><button class="msv tap" style="margin-top:.5rem" onclick="saveNotes()">Save</button></div>';
+html+='<button class="lo tap" style="margin-top:1rem" onclick="signOut()">Sign Out</button>';
 document.getElementById('profileContent').innerHTML=html;
 }
+function openModal(h){document.getElementById('modalContent').innerHTML=h;document.getElementById('modalOverlay').classList.add('sh')}
 function editName(){
-var h='<div class="mtl">Edit Name</div><div class="mf"><label>First</label><input id="eF" value="'+D.first+'"></div><div class="mf"><label>Last</label><input id="eL" value="'+D.last+'"></div>';
+var h='<div class="mtl">Edit Name</div><div class="mf"><label>First</label><input id="eF" maxlength="60" value="'+esc(D.first)+'"></div><div class="mf"><label>Last</label><input id="eL" maxlength="60" value="'+esc(D.last)+'"></div>';
 h+='<button class="msv tap" onclick="svNm()">Save</button><button class="mcn" onclick="closeModal()">Cancel</button>';
-document.getElementById('modalContent').innerHTML=h;document.getElementById('modalOverlay').classList.add('sh');
+openModal(h);
 }
-function svNm(){D.first=document.getElementById('eF').value.trim()||D.first;D.last=document.getElementById('eL').value.trim()||D.last;sv(D);closeModal();renderProfile();renderHome();setTimeout(triggerStagger,80)}
+function saveProfile(changes){
+return api('PATCH','/api/me',changes).then(function(m){D=m;closeModal();renderProfile();renderHome();setTimeout(triggerStagger,80)}).catch(fail);
+}
+function svNm(){saveProfile({first:document.getElementById('eF').value.trim()||D.first,last:document.getElementById('eL').value.trim()||D.last})}
 function editField(k,l){
-var h='<div class="mtl">Edit '+l+'</div><div class="mf"><label>'+l+'</label><input id="eV" value="'+(D[k]||'')+'"></div>';
+var h='<div class="mtl">Edit '+esc(l)+'</div><div class="mf"><label>'+esc(l)+'</label><input id="eV" maxlength="'+(k==='email'?254:200)+'" value="'+esc(D[k]||'')+'"></div>';
 h+='<button class="msv tap" onclick="svF(\''+k+'\')">Save</button><button class="mcn" onclick="closeModal()">Cancel</button>';
-document.getElementById('modalContent').innerHTML=h;document.getElementById('modalOverlay').classList.add('sh');
+openModal(h);
 setTimeout(function(){document.getElementById('eV').focus()},100);
 }
-function svF(k){D[k]=document.getElementById('eV').value.trim();sv(D);closeModal();renderProfile();renderHome();setTimeout(triggerStagger,80)}
+function svF(k){var c={};c[k]=document.getElementById('eV').value.trim();saveProfile(c)}
 function editSel(k,l,opts){
-var h='<div class="mtl">Edit '+l+'</div><div class="mf"><label>'+l+'</label><select id="eV">';
-opts.forEach(function(o){h+='<option'+(D[k]===o?' selected':'')+'>'+o+'</option>'});
+var h='<div class="mtl">Edit '+esc(l)+'</div><div class="mf"><label>'+esc(l)+'</label><select id="eV">';
+opts.forEach(function(o){h+='<option'+(D[k]===o?' selected':'')+'>'+esc(o)+'</option>'});
 h+='</select></div><button class="msv tap" onclick="svF(\''+k+'\')">Save</button><button class="mcn" onclick="closeModal()">Cancel</button>';
-document.getElementById('modalContent').innerHTML=h;document.getElementById('modalOverlay').classList.add('sh');
+openModal(h);
 }
-function saveNotes(){var v=document.getElementById('notesInput');if(!v)return;D.notes=v.value.trim();sv(D);v.style.borderColor='var(--brass)';setTimeout(function(){v.style.borderColor='rgba(0,0,0,.08)'},1200)}
-function signOut(){localStorage.removeItem(SK);location.reload()}
-function resetM(){if(confirm('This will permanently reset your membership data. Are you sure?')){localStorage.removeItem(SK);location.reload()}}
+function saveNotes(){
+var v=document.getElementById('notesInput');if(!v)return;
+api('PATCH','/api/me',{notes:v.value.trim()}).then(function(m){
+D=m;v.style.borderColor='var(--brass)';setTimeout(function(){v.style.borderColor='rgba(0,0,0,.08)'},1200);
+}).catch(fail);
+}
+function signOut(){
+if(!confirm('Sign out of Paddock 17 on this device?\n\nTo sign back in later, you’ll need the Paddock 17 team to restore your access.'))return;
+localStorage.removeItem(TOKEN_KEY);location.reload();
+}
 function closeModal(e){if(e&&e.target&&e.target!==document.getElementById('modalOverlay'))return;document.getElementById('modalOverlay').classList.remove('sh')}
-window.closeModal=function(e){if(e&&e.target&&e.target!==document.getElementById('modalOverlay'))return;document.getElementById('modalOverlay').classList.remove('sh')};
 </script>
 </body>
 </html>
